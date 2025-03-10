@@ -1,0 +1,23 @@
+.modalAcept .modal-header{
+    border-bottom: 1px solid #DBDBDB;
+    background: #E40613;   
+    height: 50px;
+    color: #FFF;
+    font-size: 1rem !important;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+}
+
+.modalAcept .modal-body{
+    height: 100px;
+    display: flex;
+    text-align: center;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
+@media (min-width: 576px) {
+    .modal-dialog button{ 
+        max-width: 45%;
+}}

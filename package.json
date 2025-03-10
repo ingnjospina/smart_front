@@ -1,0 +1,69 @@
+{
+  "name": "gestion_bienes_servicios_uv-front",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/user-event": "13.5.0",
+    "axios": "1.6.2",
+    "bootstrap": "5.3.2",
+    "jszip": "^3.10.1",
+    "prop-types": "15.8.1",
+    "react": "18.2.0",
+    "react-bootstrap": "2.9.1",
+    "react-dom": "18.2.0",
+    "react-loader-spinner": "5.4.5",
+    "react-modal-image": "2.6.0",
+    "react-redux": "8.1.3",
+    "react-router": "6.20.0",
+    "react-router-dom": "6.20.0",
+    "react-scripts": "5.0.1",
+    "react-select": "5.8.0",
+    "redux": "4.2.1",
+    "styled-components": "6.1.1",
+    "web-vitals": "2.1.4",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint .",
+    "cypress:open": "cypress open",
+    "test:e2e": "cypress run integrations"
+  },
+  "eslintConfig": {
+    "env": {
+      "cypres/globals": true
+    },
+    "extends": [
+      "react-app",
+      "react-app/jest",
+      "react-app/cypres"
+    ],
+    "plugins": [
+      "cypress"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "7.21.11",
+    "@testing-library/jest-dom": "6.1.4",
+    "@testing-library/react": "14.1.2",
+    "cypress": "13.6.0",
+    "eslint": "8.54.0",
+    "eslint-plugin-cypress": "2.15.1",
+    "eslint-plugin-react": "7.33.2"
+  }
+}
