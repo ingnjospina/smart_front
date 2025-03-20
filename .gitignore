@@ -1,7 +1,16 @@
-.idea
-
-node_modules
-
-./node_modules
-
+# Archivos y carpetas innecesarios
 node_modules/
+.idea/
+.cache/
+dist/
+build/
+
+# Archivos específicos
+package-lock.json
+yarn.lock
+
+# Configuraciones del sistema operativo y editores de código
+.DS_Store
+Thumbs.db
+.vscode/
+*.log

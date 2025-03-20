@@ -9,9 +9,8 @@ export const Spinner = () => {
 			radius="9"
 			color="red"
 			ariaLabel="loading"
-			wrapperStyle
-			wrapperClass
-			className = {'spinner'}
+			wrapperStyle={{}}
+			wrapperClass="spinner"
 		/>
 	)
 }
