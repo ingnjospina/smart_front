@@ -17,7 +17,7 @@ export const Dashboard = () => {
 	const [fechaHasta, setFechaHasta] = useState('')
 	const [condicion, setCondicion] = useState('')
 	const [alertaColor, setAlertaColor] = useState('')
-	const [transformadores, setTransformadores] = useState('')
+	const [transformadores, setTransformadores] = useState([]);
 	const [showSpinner, setShowSpinner] = useState(false)
 	const [loadingTransfo, setLoadingTransfo] = useState(true)
 	const [alertas, setAlertas] = useState([])

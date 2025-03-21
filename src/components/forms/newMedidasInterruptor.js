@@ -1,12 +1,13 @@
 import '../../styles/spinner.css';
 import React, {useEffect, useState} from 'react';
 import {Alert, Col, Container, Row} from 'react-bootstrap';
-import {DivForm, InputForm, LabelForm, PButton, SButton, StyledForm, StyledFormSelect} from '../tools/styleContent';
+import {DivForm, InputForm, PButton, SButton, StyledForm, StyledFormSelect} from '../tools/styleContent';
 import {CancelAceptModal} from '../modals/cancelAceptModal';
 import {createMedidasInterruptores, getInterruptores} from '../../services/interruptor.services';
 import {Spinner} from '../tools/spinner';
 import {useNavigate} from 'react-router-dom';
 import {UseLogout2} from "../../hooks/useLogout2";
+import RequiredLabel from "../tools/requiredLabel";
 
 export const NewMedidasInterruptor = () => {
     const navigate = useNavigate();
@@ -77,7 +78,7 @@ export const NewMedidasInterruptor = () => {
             const response = await createMedidasInterruptores(user.token, data);
             setTitle('Medición Registrada');
             setSubTitle('Datos guardados exitosamente');
-            setMessage(`Medición registrada con éxito. ID: ${response.data.id}`);
+            setMessage(`Medición registrada con éxito. ID: ${response.id}`);
         } catch (error) {
             setTitle('Error');
             setSubTitle('');
@@ -119,7 +120,7 @@ export const NewMedidasInterruptor = () => {
 
                     <Row xs={12}>
                         <Col xs={12} md={6} className={`${!interruptor && formError ? 'errorForm' : ''}`}>
-                            <LabelForm>Interruptor</LabelForm>
+                            <RequiredLabel>Interruptor</RequiredLabel>
                             <StyledFormSelect
                                 value={interruptor}
                                 onChange={({target}) => setInterruptor(target.value)}
@@ -136,17 +137,17 @@ export const NewMedidasInterruptor = () => {
 
                     <Row xs={12}>
                         <Col xs={6} md={4} className={`${!numeroOperaciones && formError ? 'errorForm' : ''}`}>
-                            <LabelForm>Número de Operaciones</LabelForm>
+                            <RequiredLabel>Número de Operaciones</RequiredLabel>
                             <InputForm type="number" value={numeroOperaciones}
                                        onChange={({target}) => setNumeroOperaciones(target.value)}/>
                         </Col>
                         <Col xs={6} md={4} className={`${!tiempoApertura && formError ? 'errorForm' : ''}`}>
-                            <LabelForm>Tiempo de Apertura (s)</LabelForm>
+                            <RequiredLabel>Tiempo de Apertura (ms)</RequiredLabel>
                             <InputForm type="number" step="0.001" value={tiempoApertura}
                                        onChange={({target}) => setTiempoApertura(target.value)}/>
                         </Col>
                         <Col xs={6} md={4} className={`${!tiempoCierre && formError ? 'errorForm' : ''}`}>
-                            <LabelForm>Tiempo de Cierre (s)</LabelForm>
+                            <RequiredLabel>Tiempo de Cierre (ms)</RequiredLabel>
                             <InputForm type="number" step="0.001" value={tiempoCierre}
                                        onChange={({target}) => setTiempoCierre(target.value)}/>
                         </Col>
@@ -154,12 +155,12 @@ export const NewMedidasInterruptor = () => {
 
                     <Row xs={12}>
                         <Col xs={6} md={4} className={`${!corrienteFalla && formError ? 'errorForm' : ''}`}>
-                            <LabelForm>Corriente de Falla (A)</LabelForm>
+                            <RequiredLabel>Corriente de Falla (A)</RequiredLabel>
                             <InputForm type="number" step="0.001" value={corrienteFalla}
                                        onChange={({target}) => setCorrienteFalla(target.value)}/>
                         </Col>
                         <Col xs={6} md={4} className={`${!resistenciaContactos && formError ? 'errorForm' : ''}`}>
-                            <LabelForm>Resistencia de Contactos (Ω)</LabelForm>
+                            <RequiredLabel>Resistencia de Contactos (Ω)</RequiredLabel>
                             <InputForm type="number" step="0.001" value={resistenciaContactos}
                                        onChange={({target}) => setResistenciaContactos(target.value)}/>
                         </Col>

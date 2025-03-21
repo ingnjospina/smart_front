@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {Col, Container, Table} from "react-bootstrap";
-import {DivForm, PTitleFilter, StyledForm, StyledTD, StyledTH} from "../tools/styleContent";
+import {DivForm, StyledForm, StyledTD, StyledTH} from "../tools/styleContent";
 import {Spinner} from "../tools/spinner";
 import {UseLogout} from "../../hooks/useLogout";
 import {deleteInterruptores, getInterruptores} from "../../services/interruptor.services";
@@ -70,6 +70,8 @@ export const InterruptoresTable = () => {
                                     <StyledTH>ID</StyledTH>
                                     <StyledTH>Nombre</StyledTH>
                                     <StyledTH>Descripción</StyledTH>
+                                    <StyledTH>Nivel de Tensión</StyledTH>
+                                    <StyledTH>Subestación</StyledTH>
                                     <StyledTH>Acciones</StyledTH>
                                 </tr>
                                 </thead>
@@ -80,6 +82,8 @@ export const InterruptoresTable = () => {
                                             <StyledTD>{interruptor.idinterruptores}</StyledTD>
                                             <StyledTD>{interruptor.nombre}</StyledTD>
                                             <StyledTD>{interruptor.descripcion}</StyledTD>
+                                            <StyledTD>{interruptor.niveles_tension}</StyledTD>
+                                            <StyledTD>{interruptor.subestacion}</StyledTD>
                                             <StyledTD>
                                                 <a href='#' onClick={() => handleEdit(interruptor.idinterruptores)}
                                                    style={{marginRight: "10px"}}>
@@ -125,6 +129,16 @@ export const InterruptoresTable = () => {
                 interruptorId={selectedInterruptorId}
                 onUpdate={fetchInterruptores} // Recargar la lista después de actualizar
             />
+            {
+                loading ? (
+                        <div className={'divSpinner'}>
+                            <Spinner/>
+                        </div>
+                    ) :
+                    (
+                        <></>
+                    )
+            }
         </div>
     );
 };
