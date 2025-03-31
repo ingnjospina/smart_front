@@ -402,7 +402,7 @@ export const NewTransformerMeasurement = () => {
                                         </>
                                     ) : (
                                         <Col xs={12}>
-                                            <DropZone loadFile={loadFileElect} type={'.xlsx'}/>
+                                            <DropZone id={'fileElect'} loadFile={loadFileElect} type={'.xlsx'}/>
                                         </Col>
                                     )
                                 }
@@ -426,7 +426,7 @@ export const NewTransformerMeasurement = () => {
                                         </>
                                     ) : (
                                         <Col xs={12}>
-                                            <DropZone loadFile={loadFileEnsayo} type={'.xlsm'}/>
+                                            <DropZone id={'fileEnsayo'} loadFile={loadFileEnsayo} type={'.xlsm'}/>
                                         </Col>
                                     )
                                 }
