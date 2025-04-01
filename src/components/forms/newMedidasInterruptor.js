@@ -10,6 +10,7 @@ import {UseLogout2} from "../../hooks/useLogout2";
 import RequiredLabel from "../tools/requiredLabel";
 import {DropZone} from "../tools/dropZone";
 import * as XLSX from "xlsx";
+import { csvParse } from 'd3';
 
 export const NewMedidasInterruptor = () => {
     const navigate = useNavigate();
@@ -47,6 +48,7 @@ export const NewMedidasInterruptor = () => {
 
     const [docTiempos, setDocTiempos] = useState([])
     const [docOperaciones, setDocOperaciones] = useState([])
+    const [docCorriente, setDocCorriente] = useState([])
     const [error, setError] = useState(null);
 
     const handleCloseModal = () => setShow(false);
@@ -163,6 +165,13 @@ export const NewMedidasInterruptor = () => {
         setDocOperaciones([])
         setError(null)
         setNumeroOperaciones('')
+    }
+
+    const deleteDocCorriente = (e) => {
+        e.preventDefault()
+        setDocCorriente([])
+        setError(null)
+        setCorrienteFalla('')
     }
 
     const loadFileTiempos = (list) => {
@@ -344,6 +353,65 @@ export const NewMedidasInterruptor = () => {
         }
     }
 
+    const loadFileCorrienteFalla = (list) => {
+        setShowSpinner(true)
+        setDocCorriente((prevList) => [...prevList, ...list])
+        const file = list[0]
+        if (file) {
+            const reader = new FileReader()
+
+            reader.onload = (event) => {
+                try {
+                    const csvData = event.target.result;
+
+                    const dfWithHeaders = csvParse(csvData);
+
+                    // Filtrar filas con 'Circuit breaker 1:Circuit break.' en 'Functions structure'
+                    const filasCircuitBreaker = dfWithHeaders.filter(row => row['Functions structure'] === 'Circuit breaker 1:Circuit break.');
+
+                    if (filasCircuitBreaker.length === 0) {
+                        setError("No se encontraron filas con 'Circuit breaker 1:Circuit break.' en 'Functions structure'.")
+                        setShowSpinner(false)
+                        return
+                    }
+
+                    // Extraer y filtrar los valores que terminan en 'A'
+                    const valoresAmperios = filasCircuitBreaker
+                        .map(row => row['Value'])
+                        .filter(value => typeof value === 'string' && value.trim().endsWith('A'))
+                        .map(value => parseFloat(value.split(' ')[0])) // Extraer solo el número antes de la 'A'
+                        .filter(value => !isNaN(value)); // Filtrar valores no numéricos
+
+                    if (valoresAmperios.length === 0) {
+                        setError("No se encontraron valores válidos en amperios ('A').")
+                        setShowSpinner(false)
+                        return
+                    }
+
+                    // Encontrar el valor máximo en amperios
+                    const maxAmperio = Math.max(...valoresAmperios);
+
+                    // Actualizar el estado con el valor máximo encontrado
+                    setCorrienteFalla(maxAmperio);
+                    setError(null)
+                } catch (error) {
+                    setError("Asegúrate de que sea un archivo CSV válido.")
+                } finally {
+                    setShowSpinner(false)
+                }
+            };
+
+            reader.onerror = () => {
+                setError("No se pudo leer el archivo. Asegúrate de que sea un archivo CSV válido.");
+                setShowSpinner(false)
+            };
+
+            reader.readAsText(file);
+        } else {
+            setShowSpinner(false);
+        }
+    }
+
     return (
         <DivForm className="newReportContent">
             <Col xs={12} className={'formBackground'}>
@@ -360,7 +428,7 @@ export const NewMedidasInterruptor = () => {
                             </Alert>)}
 
                         <Row xs={12}>
-                            <Col xs={12} md={6} id='fileTiempos'>
+                            <Col xs={12} md={4} id='fileTiempos'>
                                 <Col xs={12}>
                                     <RequiredLabel>Cargar Archivo de Tiempos</RequiredLabel>
                                 </Col>
@@ -384,7 +452,7 @@ export const NewMedidasInterruptor = () => {
                                     )
                                 }
                             </Col>
-                            <Col xs={12} md={6} id='fileOperaciones'>
+                            <Col xs={12} md={4} id='fileOperaciones'>
                                 <Col xs={12}>
                                     <RequiredLabel>Cargar Archivo de Operaciones</RequiredLabel>
                                 </Col>
@@ -404,6 +472,30 @@ export const NewMedidasInterruptor = () => {
                                     ) : (
                                         <Col xs={12}>
                                             <DropZone id='fileOperaciones' loadFile={loadFileOperaciones}type={'.xlsx'}/>
+                                        </Col>
+                                    )
+                                }
+                            </Col>
+                            <Col xs={12} md={4} id='fileCorrienteFalla'>
+                                <Col xs={12}>
+                                    <RequiredLabel>Cargar Archivo de Corriente</RequiredLabel>
+                                </Col>
+                                {
+                                    docCorriente.length > 0 ? (
+                                        <>
+                                            <TitleReport>Ya se Cargaron los Datos</TitleReport>
+                                            <SButton onClick={deleteDocCorriente}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                     viewBox="0 0 24 24" fill="none">
+                                                    <path
+                                                        d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z"
+                                                        fill="#E40613"/>
+                                                </svg>
+                                            </SButton>
+                                        </>
+                                    ) : (
+                                        <Col xs={12}>
+                                            <DropZone id='fileCorrienteFalla' loadFile={loadFileCorrienteFalla}type={'.csv'}/>
                                         </Col>
                                     )
                                 }
