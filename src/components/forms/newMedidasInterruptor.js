@@ -203,17 +203,17 @@ export const NewMedidasInterruptor = () => {
                     }
 
                     // Leer las celdas requeridas
-                    const tiempoAperturaA = sheetTiempos['C61'].v
-                    const tiempoAperturaB = sheetTiempos['C63'].v
-                    const tiempoAperturaC = sheetTiempos['C65'].v
+                    const tiempoAperturaA = parseFloat((sheetTiempos['C61'].v * 1000).toFixed(2))
+                    const tiempoAperturaB = parseFloat((sheetTiempos['C63'].v * 1000).toFixed(2))
+                    const tiempoAperturaC = parseFloat((sheetTiempos['C65'].v * 1000).toFixed(2))
 
-                    const tiempoCierreA = sheetTiempos['E61'].v
-                    const tiempoCierreB = sheetTiempos['E63'].v
-                    const tiempoCierreC = sheetTiempos['E65'].v
+                    const tiempoCierreA = parseFloat((sheetTiempos['E61'].v * 1000).toFixed(2))
+                    const tiempoCierreB = parseFloat((sheetTiempos['E63'].v * 1000).toFixed(2))
+                    const tiempoCierreC = parseFloat((sheetTiempos['E65'].v * 1000).toFixed(2))
 
-                    const resistenciaR = sheetResitencia['F49'].v
-                    const resistenciaS = sheetResitencia['F50'].v
-                    const resistenciaT = sheetResitencia['F51'].v
+                    const resistenciaR = parseFloat((sheetResitencia['F49'].v * 1000).toFixed(6))
+                    const resistenciaS = parseFloat((sheetResitencia['F50'].v * 1000).toFixed(6))
+                    const resistenciaT = parseFloat((sheetResitencia['F51'].v * 1000).toFixed(6))
 
                     // Actualizar los estados
                     setTiempoAperturaA(tiempoAperturaA)
@@ -551,13 +551,13 @@ export const NewMedidasInterruptor = () => {
                         </Row>
 
                         <Row xs={12}>
-                            <Col xs={4}><RequiredLabel>Resistencia Contactos R (Ω)</RequiredLabel><InputForm
+                            <Col xs={4}><RequiredLabel>Resistencia Contactos R (mΩ)</RequiredLabel><InputForm
                                 value={resistenciaContactosR}
                                 onChange={({target}) => setResistenciaContactosR(target.value)}/></Col>
-                            <Col xs={4}><RequiredLabel>Resistencia Contactos S (Ω)</RequiredLabel><InputForm
+                            <Col xs={4}><RequiredLabel>Resistencia Contactos S (mΩ)</RequiredLabel><InputForm
                                 value={resistenciaContactosS}
                                 onChange={({target}) => setResistenciaContactosS(target.value)}/></Col>
-                            <Col xs={4}><RequiredLabel>Resistencia Contactos T (Ω)</RequiredLabel><InputForm
+                            <Col xs={4}><RequiredLabel>Resistencia Contactos T (mΩ)</RequiredLabel><InputForm
                                 value={resistenciaContactosT}
                                 onChange={({target}) => setResistenciaContactosT(target.value)}/></Col>
                         </Row>
