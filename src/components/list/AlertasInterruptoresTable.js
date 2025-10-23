@@ -129,6 +129,47 @@ export const AlertasInterruptoresTable = () => {
         setShow(true)
     }
 
+    // Función para descargar CSV
+    const downloadCSV = () => {
+        if (alertas.length === 0) {
+            alert('No hay datos para descargar')
+            return
+        }
+
+        // Crear encabezados del CSV
+        const headers = ['ID', 'Interruptor', 'Valor Medición', 'Tipo Alerta', 'Condición', 'Recomendación', 'Fecha']
+
+        // Crear filas con los datos filtrados
+        const rows = alertas.map(alerta => [
+            alerta.alerta.id,
+            alerta.interruptor.nombre,
+            alerta.alerta.valor_medicion,
+            alerta.alerta.tipo_alerta,
+            alerta.alerta.condicion,
+            alerta.alerta.recomendacion,
+            alerta.alerta.fecha_medicion
+        ])
+
+        // Combinar encabezados y filas
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n')
+
+        // Crear blob y descargar
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+
+        link.setAttribute('href', url)
+        link.setAttribute('download', `alertas_interruptores_${new Date().toISOString().split('T')[0]}.csv`)
+        link.style.visibility = 'hidden'
+
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
+
     return (
         <DivForm>
             <Col xs={12} className={'formBackground'}>
@@ -181,11 +222,21 @@ export const AlertasInterruptoresTable = () => {
                                 <InputForm type='date' value={fechaHasta}
                                            onChange={(e) => setFechaHasta(e.target.value)}/>
                             </Col>
-                            <Col xs={12} md={3} className="d-flex align-items-end">
+                            <Col xs={12} md={2} className="d-flex align-items-end">
                                 <SButton onClick={clear} className="w-100">Limpiar</SButton>
                             </Col>
-                            <Col xs={12} md={3} className="d-flex align-items-end">
+                            <Col xs={12} md={2} className="d-flex align-items-end">
                                 <PButton type="submit" className="w-100">Filtrar</PButton>
+                            </Col>
+                            <Col xs={12} md={2} className="d-flex align-items-end">
+                                <PButton type="button" className="w-100" onClick={downloadCSV}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '5px'}}>
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    CSV
+                                </PButton>
                             </Col>
                         </Row>
                     </form>

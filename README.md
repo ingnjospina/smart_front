@@ -1,70 +1,130 @@
-# Getting Started with Create React App
+# README.md
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Available Scripts
+## Project Overview
 
-In the project directory, you can run:
+This is a React-based frontend application for managing electrical infrastructure (transformers and circuit breakers/interruptors) at Universidad del Valle. The application handles device monitoring, measurements, alerts, and reporting.
 
-### `npm start`
+## Development Commands
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Running the Application
+- `npm start` - Start development server on http://localhost:3000
+- `npm run build` - Build production bundle
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Testing
+- `npm test` - Run Jest unit tests in watch mode
+- `npm run cypress:open` - Open Cypress interactive test runner
+- `npm run test:e2e` - Run Cypress e2e tests headlessly
 
-### `npm test`
+### Linting
+- `npm run lint` - Run ESLint on the entire codebase
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Architecture
 
-### `npm run build`
+### Backend API Connection
+The application communicates with a Django REST API running at `http://127.0.0.1:8000` (some services use `http://localhost:8000`). All API requests require Bearer token authentication, stored in localStorage after login.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Authentication Flow
+1. User logs in via `/signin` endpoint
+2. JWT tokens (access + refresh) stored in localStorage as `loggedAppUser`
+3. `UserContext` (in `src/hooks/userContext.js`) provides global auth state using React Context + useReducer
+4. Protected routes redirect to `/signin` if user is not authenticated (see `src/components/router/index.routes.js`)
+5. Token refresh logic in `src/hooks/useRefreshToken.js`
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### State Management
+- **Global State**: `UserContext` manages authentication state throughout the app
+- **Local State**: Component-level useState for forms, modals, and UI state
+- **No Redux**: Despite redux being in dependencies, the codebase uses Context API
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Component Structure
 
-### `npm run eject`
+```
+components/
+├── pages/         - Full page components (dashboard, login, transformer list, etc.)
+├── forms/         - Form components (newTransfo, newInterru, newRequest, etc.)
+├── list/          - Table/list display components (TransformadoresTable, InterruptoresTable, AlertasInterruptoresTable)
+├── modals/        - Modal dialogs (cancelAceptModal, modalProvider, EditTransformadorModal, etc.)
+├── sections/      - Page sections (reportInformation, reportEvaluation, userInformation, etc.)
+├── bodys/         - Layout body wrappers (bodyContent, mainContent, reportContent)
+├── side/          - Sidebar navigation for different roles (sideUser, sideAdmin)
+├── tools/         - Reusable utilities (spinner, dropZone, checkBoxGroup, styleContent, requiredLabel)
+└── router/        - Routing configuration (index.routes.js)
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Service Layer Pattern
+All API calls are abstracted into service modules in `src/services/`:
+- `transformer.services.js` - CRUD operations for transformers
+- `interruptor.services.js` - CRUD + alerts for circuit breakers
+- `mediciones.services.js` - Measurement data
+- `report.services.js` - Report generation
+- `provider.services.js` - Provider management
+- `request.services.js` - Service requests
+- `signin.js` - Authentication
+- `user.js` - User operations
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Each service follows the pattern:
+```javascript
+const config = {
+    headers: { authorization: 'Bearer ' + token }
+}
+const { data } = await axios.get(url, config)
+return data
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Role-Based Access
+The application has two main roles checked in `user.rol`:
+- **"Técnico"** - Technical user with limited access (see `SideUser` component)
+- **"Administrador"** - Admin user with full access (see `SideAdmin` component)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Navigation sidebar dynamically renders based on role.
 
-## Learn More
+### File Handling
+- `useBase64` hook converts files to base64 for upload
+- `dropZone` component handles drag-and-drop file uploads
+- `xlsx` and `jszip` libraries used for CSV/Excel processing
+- Files are often uploaded as part of measurement data with fault current calculations
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Key Data Entities
+1. **Transformadores** (Transformers) - Electrical transformers with measurements and alerts
+2. **Interruptores** (Circuit Breakers) - Circuit breakers with measurements and alerts
+3. **Mediciones** (Measurements) - Time-series measurement data for devices
+4. **Reportes** (Reports) - Generated reports with images and evaluations
+5. **Proveedores** (Providers) - Service providers
+6. **Solicitudes** (Requests) - Service requests with actions and status tracking
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Important Patterns
 
-### Code Splitting
+### Modal Pattern
+Forms typically use `CancelAceptModal` for confirmation dialogs with:
+- `show` state to control visibility
+- `title`, `subTitle`, `message` for content
+- `handleCloseModal` and `handleAccept` callbacks
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Spinner Pattern
+Components use `<Spinner />` with `showSpinner` state during async operations (API calls, file processing).
 
-### Analyzing the Bundle Size
+### Alert Pattern
+Bootstrap `Alert` component with `showAlert` state for success/error messages.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Styled Components
+Custom styled components in `src/components/tools/styleContent.js` provide consistent styling (StyledLink, StyledForm, InputForm, PButton, SButton, etc.).
 
-### Making a Progressive Web App
+### Logout Flow
+Two logout hooks exist:
+- `useLogout.js` - Basic logout
+- `useLogout2.js` - Alternative logout implementation
+Both clear localStorage and reset UserContext.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Testing
+- Unit tests in `src/test/` (limited coverage)
+- E2E tests in `cypress/e2e/integrations/`
+- Fixtures in `cypress/fixtures/` (users.json, profile.json)
 
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Important Notes
+- API URLs are hardcoded (no environment variables)
+- Token stored in localStorage (key: `loggedAppUser`)
+- Application expects specific user object shape with `Nombres` and `rol` fields
+- D3.js library included for data visualization (likely for charts/graphs)
+- Bootstrap + React-Bootstrap for UI components
+- react-router-dom v6 for routing

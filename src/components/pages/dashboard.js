@@ -53,7 +53,7 @@ export const Dashboard = () => {
 				setShowSpinner(true)
 				const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
 				const respond = await getAlertas(user.token)
-				
+
 				const tiposSet = new Set([])
 				const condicionesSet = new Set([])
 
@@ -76,6 +76,7 @@ export const Dashboard = () => {
 
 		fetchTransformadores().then(()=> {})
 		fetchData().then(()=>{})
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	const clear = (e) => {
@@ -138,6 +139,53 @@ export const Dashboard = () => {
 		setTitle('RECOMENDACIÓN')
 		setMessage(msj)
 		setShow(true)
+	}
+
+	// Función para descargar CSV
+	const downloadCSV = () => {
+		if (alertas.length === 0) {
+			alert('No hay datos para descargar')
+			return
+		}
+
+		// Crear encabezados del CSV
+		const headers = ['# Medición', 'Transformador', 'Valor Medición', 'Tipo Alerta', 'Condición', 'Vida Útil', 'Recomendación', 'Fecha']
+
+		// Crear filas con los datos filtrados
+		const rows = alertas.map(alerta => {
+			const transformador = transformadores.find(t => t.idtransformadores === alerta.medicion.transformadores)
+			const transformadorNombre = transformador ? `${alerta.medicion.transformadores} - ${transformador.nombre}` : alerta.medicion.transformadores
+
+			return [
+				alerta.alerta.mediciones_transformadores,
+				transformadorNombre,
+				alerta.medicion.hi_ponderado,
+				alerta.alerta.color_alerta,
+				alerta.alerta.mensaje_condicion,
+				alerta.alerta.vida_util_remanente,
+				alerta.alerta.recomendacion,
+				getDate(alerta.alerta.fecha_generacion)
+			]
+		})
+
+		// Combinar encabezados y filas
+		const csvContent = [
+			headers.join(','),
+			...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+		].join('\n')
+
+		// Crear blob y descargar
+		const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+		const link = document.createElement('a')
+		const url = URL.createObjectURL(blob)
+
+		link.setAttribute('href', url)
+		link.setAttribute('download', `alertas_transformadores_${new Date().toISOString().split('T')[0]}.csv`)
+		link.style.visibility = 'hidden'
+
+		document.body.appendChild(link)
+		link.click()
+		document.body.removeChild(link)
 	}
 
 	return (
@@ -269,14 +317,24 @@ export const Dashboard = () => {
 										/>
 									</Col>
 								</Col>
-								<ButtonBox xs={12} md={3}>
+								<ButtonBox xs={12} md={2}>
 									<SButton onClick={clear}>
 										Limpiar
 									</SButton>
 								</ButtonBox>
-								<ButtonBox xs={3}>
+								<ButtonBox xs={12} md={2}>
 									<PButton>
 										Filtrar
+									</PButton>
+								</ButtonBox>
+								<ButtonBox xs={12} md={2}>
+									<PButton type="button" onClick={downloadCSV}>
+										<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '5px'}}>
+											<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+											<polyline points="7 10 12 15 17 10"></polyline>
+											<line x1="12" y1="15" x2="12" y2="3"></line>
+										</svg>
+										CSV
 									</PButton>
 								</ButtonBox>
 							</Row>
@@ -341,12 +399,16 @@ export const Dashboard = () => {
 													{alerta.alerta.vida_util_remanente}
 												</StyledTD>
 												<StyledTD>
-													<a href='#' onClick={() => viewRecomendation(alerta.alerta.recomendacion)}>
+													<button
+														onClick={() => viewRecomendation(alerta.alerta.recomendacion)}
+														style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0}}
+														aria-label="Ver recomendación"
+													>
 														<svg xmlns="http://www.w3.org/2000/svg" width="27" height="20" viewBox="0 0 27 20" fill="none">
 															<path d="M25.9154 9.70601C23.1415 3.8626 18.9484 0.921875 13.3273 0.921875C7.7034 0.921875 3.51323 3.8626 0.739294 9.70893C0.513985 10.183 0.513985 10.7389 0.739294 11.2159C3.51323 17.0593 7.70632 20 13.3273 20C18.9513 20 23.1415 17.0593 25.9154 11.2129C26.1407 10.7389 26.1407 10.1888 25.9154 9.70601ZM13.3273 17.8932C8.60756 17.8932 5.15184 15.4997 2.71441 10.4609C5.15184 5.42221 8.60756 3.02866 13.3273 3.02866C18.0471 3.02866 21.5028 5.42221 23.9403 10.4609C21.5058 15.4997 18.0501 17.8932 13.3273 17.8932Z" fill="#99ABB4" />
 															<path d="M13.2105 5.31104C10.3663 5.31104 8.06055 7.6168 8.06055 10.461C8.06055 13.3051 10.3663 15.6109 13.2105 15.6109C16.0546 15.6109 18.3604 13.3051 18.3604 10.461C18.3604 7.6168 16.0546 5.31104 13.2105 5.31104ZM13.2105 13.7382C11.3992 13.7382 9.93325 12.2722 9.93325 10.461C9.93325 8.64971 11.3992 7.18373 13.2105 7.18373C15.0217 7.18373 16.4877 8.64971 16.4877 10.461C16.4877 12.2722 15.0217 13.7382 13.2105 13.7382Z" fill="#99ABB4" />
 														</svg>
-													</a>
+													</button>
 												</StyledTD>
 												<StyledTD>
 													{getDate(alerta.alerta.fecha_generacion)}

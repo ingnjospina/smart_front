@@ -37,7 +37,7 @@ export const Sidebar = ({title}) => {
                     classes={`${!isSidebarCollapsed ? '' : 'navbar-side'}`}/>
             <div className={`sidebar  ${isSidebarCollapsed ? '' : 'hidden'}`}>
                 <div className='arrowSide' style={{display: window.innerWidth > 1000 ? 'none' : 'flex'}}>
-                    <a href='#' onClick={closeSide} className={`${isSidebarCollapsed ? '' : 'hidden'}`}>
+                    <button onClick={closeSide} className={`${isSidebarCollapsed ? '' : 'hidden'}`} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0}}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                             <g clipPath="url(#clip0_1486_267)">
                                 <path fillRule="evenodd" clipRule="evenodd"
@@ -50,10 +50,10 @@ export const Sidebar = ({title}) => {
                                 </clipPath>
                             </defs>
                         </svg>
-                    </a>
+                    </button>
                 </div>
                 <div className='avatar'>
-                    <img src={imgAvatar}/>
+                    <img src={imgAvatar} alt="Avatar del usuario"/>
                 </div>
                 <p>¡Hola!</p>
                 <div className='name'>
@@ -62,6 +62,8 @@ export const Sidebar = ({title}) => {
                     </p>
                 </div>
                 <ul>
+                    <hr></hr>
+                    <p>Alertas</p>
                     <StyledLi>
                         <StyledLink to='/'>
                             {/* DASH <svg xmlns="http://www.w3.org/2000/svg" width="21" height="18" viewBox="0 0 21 18" fill="none">
@@ -73,7 +75,7 @@ export const Sidebar = ({title}) => {
                                     d="M5.5667 1.62051L4.1324 0.153846C1.72518 2.03077 0.140421 4.92308 0 8.20513H2.00602C2.15647 5.48718 3.52056 3.10769 5.5667 1.62051ZM17.994 8.20513H20C19.8495 4.92308 18.2648 2.03077 15.8676 0.153846L14.4433 1.62051C16.4694 3.10769 17.8435 5.48718 17.994 8.20513ZM16.0181 8.71795C16.0181 5.56923 14.3731 2.93333 11.5045 2.2359V1.53846C11.5045 0.68718 10.8325 0 10 0C9.1675 0 8.49549 0.68718 8.49549 1.53846V2.2359C5.61685 2.93333 3.98195 5.55897 3.98195 8.71795V13.8462L1.97593 15.8974V16.9231H18.0241V15.8974L16.0181 13.8462V8.71795ZM10 20C10.1404 20 10.2708 19.9897 10.4012 19.959C11.0532 19.8154 11.5848 19.3641 11.8455 18.7487C11.9458 18.5026 11.996 18.2359 11.996 17.9487H7.98395C7.99398 19.0769 8.88666 20 10 20Z"
                                     fill="#E40613"/>
                             </svg>
-                            <span style={{fontSize: "12px"}}>Alertas Transformadores</span>
+                            <span style={{fontSize: "12px"}}>Transformadores</span>
                         </StyledLink>
                     </StyledLi>
 
@@ -85,7 +87,7 @@ export const Sidebar = ({title}) => {
                                     d="M5.5667 1.62051L4.1324 0.153846C1.72518 2.03077 0.140421 4.92308 0 8.20513H2.00602C2.15647 5.48718 3.52056 3.10769 5.5667 1.62051ZM17.994 8.20513H20C19.8495 4.92308 18.2648 2.03077 15.8676 0.153846L14.4433 1.62051C16.4694 3.10769 17.8435 5.48718 17.994 8.20513ZM16.0181 8.71795C16.0181 5.56923 14.3731 2.93333 11.5045 2.2359V1.53846C11.5045 0.68718 10.8325 0 10 0C9.1675 0 8.49549 0.68718 8.49549 1.53846V2.2359C5.61685 2.93333 3.98195 5.55897 3.98195 8.71795V13.8462L1.97593 15.8974V16.9231H18.0241V15.8974L16.0181 13.8462V8.71795ZM10 20C10.1404 20 10.2708 19.9897 10.4012 19.959C11.0532 19.8154 11.5848 19.3641 11.8455 18.7487C11.9458 18.5026 11.996 18.2359 11.996 17.9487H7.98395C7.99398 19.0769 8.88666 20 10 20Z"
                                     fill="#E40613"/>
                             </svg>
-                            <span style={{fontSize: "12px"}}>Alertas interruptores</span>
+                            <span style={{fontSize: "12px"}}>Interruptores</span>
                         </StyledLink>
                     </StyledLi>
 

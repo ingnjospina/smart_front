@@ -6,9 +6,9 @@ export const SideAdmin = () => {
         <>
             {<StyledLi>
                 <StyledLink to='/newTransfor'>
-                    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 448 512">
                         <path
-                            d="M0.5 0.8125H8.5V8.8125H0.5V0.8125ZM10.5 0.8125H18.5V8.8125H10.5V0.8125ZM0.5 10.8125H8.5V18.8125H0.5V10.8125ZM13.5 10.8125H15.5V13.8125H18.5V15.8125H15.5V18.8125H13.5V15.8125H10.5V13.8125H13.5V10.8125ZM12.5 2.8125V6.8125H16.5V2.8125H12.5ZM2.5 2.8125V6.8125H6.5V2.8125H2.5ZM2.5 12.8125V16.8125H6.5V12.8125H2.5Z"
+                            d="M349.4 44.6c5.9-13.7 1.5-29.7-10.6-38.5s-28.6-8-39.9 1.8l-256 224c-10 8.8-13.6 22.9-8.9 35.3S50.7 288 64 288l111.5 0L98.6 467.4c-5.9 13.7-1.5 29.7 10.6 38.5s28.6 8 39.9-1.8l256-224c10-8.8 13.6-22.9 8.9-35.3s-16.6-20.7-30-20.7l-111.5 0L349.4 44.6z"
                             fill="#E40613"/>
                     </svg>
                     Crear Transformador
@@ -51,6 +51,76 @@ export const SideAdmin = () => {
 				</StyledLink>
 			</StyledLi> */}
             <hr></hr>
+
+            <p>Pronósticos</p>
+            <StyledLi>
+                <StyledLink to='/pronosticosTransformadores'>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 448 512">
+                        <path
+                            d="M349.4 44.6c5.9-13.7 1.5-29.7-10.6-38.5s-28.6-8-39.9 1.8l-256 224c-10 8.8-13.6 22.9-8.9 35.3S50.7 288 64 288l111.5 0L98.6 467.4c-5.9 13.7-1.5 29.7 10.6 38.5s28.6 8 39.9-1.8l256-224c10-8.8 13.6-22.9 8.9-35.3s-16.6-20.7-30-20.7l-111.5 0L349.4 44.6z"
+                            fill="#E40613"/>
+                    </svg>
+                    Transformadores
+                </StyledLink>
+            </StyledLi>
+            <StyledLi>
+                <StyledLink to='/pronosticosInterruptores'>
+                    <svg width="19" height="19" viewBox="0 0 19 19" fill="none"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 5H14V9H2V5ZM2 11H14V15H2V11ZM16 5H17V9H16V5ZM16 11H17V15H16V11Z"
+                              fill="#E40613"/>
+                    </svg>
+                    Interruptores
+                </StyledLink>
+            </StyledLi>
+
+            <hr></hr>
+            <p>Ingresar Mediciones</p>
+            <StyledLi>
+                <StyledLink to='/newTransformerMeasurement'>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 448 512">
+                        <path
+                            d="M349.4 44.6c5.9-13.7 1.5-29.7-10.6-38.5s-28.6-8-39.9 1.8l-256 224c-10 8.8-13.6 22.9-8.9 35.3S50.7 288 64 288l111.5 0L98.6 467.4c-5.9 13.7-1.5 29.7 10.6 38.5s28.6 8 39.9-1.8l256-224c10-8.8 13.6-22.9 8.9-35.3s-16.6-20.7-30-20.7l-111.5 0L349.4 44.6z"
+                            fill="#E40613"/>
+                    </svg>
+                    Transformador
+                </StyledLink>
+            </StyledLi>
+            <StyledLi>
+                <StyledLink to='/newInterruptorMeasurement'>
+                    <svg width="19" height="19" viewBox="0 0 19 19" fill="none"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 5H14V9H2V5ZM2 11H14V15H2V11ZM16 5H17V9H16V5ZM16 11H17V15H16V11Z"
+                              fill="#E40613"/>
+                    </svg>
+                    Interruptor
+                </StyledLink>
+            </StyledLi>
+
+            <hr></hr>
+            <p>Ingresar Pronóstico</p>
+            <StyledLi>
+                <StyledLink to='/newForecastTransformer'>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 448 512">
+                        <path
+                            d="M349.4 44.6c5.9-13.7 1.5-29.7-10.6-38.5s-28.6-8-39.9 1.8l-256 224c-10 8.8-13.6 22.9-8.9 35.3S50.7 288 64 288l111.5 0L98.6 467.4c-5.9 13.7-1.5 29.7 10.6 38.5s28.6 8 39.9-1.8l256-224c10-8.8 13.6-22.9 8.9-35.3s-16.6-20.7-30-20.7l-111.5 0L349.4 44.6z"
+                            fill="#E40613"/>
+                    </svg>
+                    Transformador
+                </StyledLink>
+            </StyledLi>
+            <StyledLi>
+                <StyledLink to='/newForecastInterruptor'>
+                    <svg width="19" height="19" viewBox="0 0 19 19" fill="none"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 5H14V9H2V5ZM2 11H14V15H2V11ZM16 5H17V9H16V5ZM16 11H17V15H16V11Z"
+                              fill="#E40613"/>
+                    </svg>
+                    Interruptor
+                </StyledLink>
+            </StyledLi>
+
+            <hr></hr>
             <p>Historial de Mediciones</p>
             <StyledLi>
                 <StyledLink to='/viewMeasurement'>
@@ -68,9 +138,9 @@ export const SideAdmin = () => {
             <p>Listas</p>
             <StyledLi>
                 <StyledLink to='/listTransformadores'>
-                    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 448 512">
                         <path
-                            d="M0.5 0.8125H8.5V8.8125H0.5V0.8125ZM10.5 0.8125H18.5V8.8125H10.5V0.8125ZM0.5 10.8125H8.5V18.8125H0.5V10.8125ZM13.5 10.8125H15.5V13.8125H18.5V15.8125H15.5V18.8125H13.5V15.8125H10.5V13.8125H13.5V10.8125ZM12.5 2.8125V6.8125H16.5V2.8125H12.5ZM2.5 2.8125V6.8125H6.5V2.8125H2.5ZM2.5 12.8125V16.8125H6.5V12.8125H2.5Z"
+                            d="M349.4 44.6c5.9-13.7 1.5-29.7-10.6-38.5s-28.6-8-39.9 1.8l-256 224c-10 8.8-13.6 22.9-8.9 35.3S50.7 288 64 288l111.5 0L98.6 467.4c-5.9 13.7-1.5 29.7 10.6 38.5s28.6 8 39.9-1.8l256-224c10-8.8 13.6-22.9 8.9-35.3s-16.6-20.7-30-20.7l-111.5 0L349.4 44.6z"
                             fill="#E40613"/>
                     </svg>
                     Transformadores
