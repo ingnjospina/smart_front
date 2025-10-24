@@ -619,7 +619,7 @@ export const NewPronosticoInterruptor = () => {
                         if (valoresFases.length > 0) {
                             const minValor = Math.min(...valoresFases)
                             setResistenciaContactos(minValor)
-                            console.log('Resistencia de contactos extraída (menor entre todas las fases):', minValor, 'µΩ')
+                            console.log('Resistencia de contactos extraída (menor entre todas las fases):', minValor, 'Ω')
                         } else {
                             console.log('No se encontraron valores de resistencia para ninguna fase')
                         }
@@ -636,7 +636,7 @@ export const NewPronosticoInterruptor = () => {
                             if (columnaC === fase && columnaF && columnaF !== '' && !isNaN(parseFloat(columnaF))) {
                                 const valor = parseFloat(columnaF)
                                 setResistenciaContactos(valor)
-                                console.log(`Resistencia de contactos extraída (Fase ${fase}):`, valor, 'µΩ')
+                                console.log(`Resistencia de contactos extraída (Fase ${fase}):`, valor, 'Ω')
                                 break
                             }
                         }
@@ -1072,7 +1072,7 @@ export const NewPronosticoInterruptor = () => {
                             </Col>
                             <Col xs={12} md={6} className={`${!corrienteFalla && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Ingrese la corriente de falla (kA)</RequiredLabel>
+                                    <RequiredLabel>Ingrese la corriente de falla (A)</RequiredLabel>
                                 </Col>
                                 <Col xs={12}>
                                     <InputForm
@@ -1080,7 +1080,7 @@ export const NewPronosticoInterruptor = () => {
                                         step='0.01'
                                         value={corrienteFalla}
                                         name='corrienteFalla'
-                                        placeholder='Corriente en kA'
+                                        placeholder='Corriente en A'
                                         onChange={({target}) => setCorrienteFalla(target.value)}
                                     />
                                 </Col>
@@ -1089,7 +1089,7 @@ export const NewPronosticoInterruptor = () => {
                         <Row xs={12}>
                             <Col xs={12} md={6} className={`${!resistenciaContactos && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Ingrese la resistencia de contactos (µΩ)</RequiredLabel>
+                                    <RequiredLabel>Ingrese la resistencia de contactos (Ω)</RequiredLabel>
                                 </Col>
                                 <Col xs={12}>
                                     <InputForm
@@ -1097,7 +1097,7 @@ export const NewPronosticoInterruptor = () => {
                                         step='0.01'
                                         value={resistenciaContactos}
                                         name='resistenciaContactos'
-                                        placeholder='Resistencia en µΩ'
+                                        placeholder='Resistencia en Ω'
                                         onChange={({target}) => setResistenciaContactos(target.value)}
                                     />
                                 </Col>

@@ -14,8 +14,8 @@ export const SideUser = () => {
 				</StyledLink>
 			</StyledLi> */}
             <hr></hr>
-                        <p>Pronósticos</p>
-            <StyledLi>
+            <p>Pronósticos</p>
+            {/* <StyledLi>
                 <StyledLink to='/pronosticosTransformadores'>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 448 512">
                         <path
@@ -24,7 +24,7 @@ export const SideUser = () => {
                     </svg>
                     Transformadores
                 </StyledLink>
-            </StyledLi>
+            </StyledLi> */}
             <StyledLi>
                 <StyledLink to='/pronosticosInterruptores'>
                     <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -66,7 +66,7 @@ export const SideUser = () => {
 			</StyledLi> */}
             <hr></hr>
             <p>Ingresar Pronóstico</p>
-            <StyledLi>
+            {/* <StyledLi>
                 <StyledLink to='/newForecastTransformer'>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 448 512">
                         <path
@@ -75,7 +75,7 @@ export const SideUser = () => {
                     </svg>
                     Transformador
                 </StyledLink>
-            </StyledLi>
+            </StyledLi> */}
             <StyledLi>
                 <StyledLink to='/newForecastInterruptor'>
                     <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">

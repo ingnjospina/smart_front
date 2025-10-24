@@ -129,7 +129,7 @@ export const PronosticosTransformadoresTable = () => {
 
         // Crear encabezados del CSV
         const headers = ['ID', 'Transformador', 'Tiempo Apertura (ms)', 'Tiempo Cierre (ms)', 'Núm. Operaciones',
-                        'Corriente Falla (kA)', 'Resistencia Contactos (µΩ)', 'Fecha Mantenimiento',
+                        'Corriente Falla (A)', 'Resistencia Contactos (Ω)', 'Fecha Mantenimiento',
                         'Prob. Mantenimiento (%)', 'Fecha Programada', 'Fecha Óptima Sugerida', 'Fecha Creación']
 
         // Crear filas con los datos filtrados
