@@ -105,42 +105,138 @@ export const NewTransformerMeasurement = () => {
 
                 // Leer la hoja de corriente de exitación
                 workbook.SheetNames.forEach(sheetName => {
+                    // ========== FUNCIONALIDAD ANTERIOR COMENTADA ==========
+                    // if (sheetName === 'Exciting Current') {
+                    //     const sheet = workbook.Sheets[sheetName]
+                    //     const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
+                    //
+                    //     const startRow = 15
+                    //     const columnIndex = 4
+                    //
+                    //     const columnData = jsonData
+                    //         .slice(startRow - 1)
+                    //         .map((row) => row[columnIndex])
+                    //         .filter((value) => value !== undefined)
+                    //
+                    //     let manPass = true
+                    //
+                    //     for (let i = 0; i < columnData.length; i += 3) {
+                    //
+                    //         if (i === 0) {
+                    //             setce1(columnData[i])
+                    //             setce2(columnData[i + 1])
+                    //             setce3(columnData[i + 2])
+                    //         }
+                    //
+                    //         const c1 = columnData[i]
+                    //         const c2 = columnData[i + 1]
+                    //         const c3 = columnData[i + 2]
+                    //
+                    //         if (!((c2 < c1 && c2 < c3) || (c2 === c3 && c2 < c1))) {
+                    //             manPass &&= false
+                    //             setce1(columnData[i])
+                    //             setce2(columnData[i + 1])
+                    //             setce3(columnData[i + 2])
+                    //         }
+                    //     }
+                    //
+                    //     if (manPass) {
+                    //         setCorrienteExcitacion(5)
+                    //     }
+                    // }
+                    // ========== FIN FUNCIONALIDAD ANTERIOR ==========
+
+                    // NUEVA FUNCIONALIDAD: Buscar máximos por fase A, B, C
                     if (sheetName === 'Exciting Current') {
                         const sheet = workbook.Sheets[sheetName]
                         const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
 
-                        const startRow = 15
-                        const columnIndex = 4
+                        // Columna C del Excel (índice 1) contiene Phase (A, B, C)
+                        // Columna G del Excel (índice 5) contiene Watt losses [W]
+                        // Nota: El array empieza en columna B del Excel, por eso B=0, C=1, D=2, E=3, F=4, G=5
+                        const colPhaseIndex = 1
+                        const colValueIndex = 5
 
-                        const columnData = jsonData
-                            .slice(startRow - 1)
-                            .map((row) => row[columnIndex])
-                            .filter((value) => value !== undefined)
-
-                        let manPass = true
-
-                        for (let i = 0; i < columnData.length; i += 3) {
-
-                            if (i === 0) {
-                                setce1(columnData[i])
-                                setce2(columnData[i + 1])
-                                setce3(columnData[i + 2])
-                            }
-
-                            const c1 = columnData[i]
-                            const c2 = columnData[i + 1]
-                            const c3 = columnData[i + 2]
-
-                            if (!((c2 < c1 && c2 < c3) || (c2 === c3 && c2 < c1))) {
-                                manPass &&= false
-                                setce1(columnData[i])
-                                setce2(columnData[i + 1])
-                                setce3(columnData[i + 2])
-                            }
+                        // Objetos para almacenar valores por fase
+                        const valoresPorFase = {
+                            A: [],
+                            B: [],
+                            C: []
                         }
 
-                        if (manPass) {
-                            setCorrienteExcitacion(5)
+                        // Recorrer todas las filas y agrupar valores por fase
+                        jsonData.forEach((row) => {
+                            const fase = row[colPhaseIndex]
+                            const valor = row[colValueIndex]
+
+                            if (fase === 'A' && valor !== null && valor !== undefined && !isNaN(valor) && typeof valor === 'number') {
+                                valoresPorFase.A.push(valor)
+                            } else if (fase === 'B' && valor !== null && valor !== undefined && !isNaN(valor) && typeof valor === 'number') {
+                                valoresPorFase.B.push(valor)
+                            } else if (fase === 'C' && valor !== null && valor !== undefined && !isNaN(valor) && typeof valor === 'number') {
+                                valoresPorFase.C.push(valor)
+                            }
+                        })
+
+                        // Obtener el valor máximo para cada fase
+                        if (valoresPorFase.A.length > 0) {
+                            const maxA = Math.max(...valoresPorFase.A)
+                            setce1(maxA)
+                        }
+
+                        if (valoresPorFase.B.length > 0) {
+                            const maxB = Math.max(...valoresPorFase.B)
+                            setce2(maxB)
+                        }
+
+                        if (valoresPorFase.C.length > 0) {
+                            const maxC = Math.max(...valoresPorFase.C)
+                            setce3(maxC)
+                        }
+                    }
+
+                    // Leer la hoja de Ratio Prim-Sec para obtener la relación de transformación
+                    if (sheetName === 'Ratio Prim-Sec') {
+                        const sheet = workbook.Sheets[sheetName]
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
+
+                        // La hoja empieza en columna B del Excel, por lo que hay un offset
+                        // Columna J del Excel es el índice 8 (0-indexed en el array)
+                        // porque B=0, C=1, D=2, E=3, F=4, G=5, H=6, I=7, J=8
+                        const columnJIndex = 8
+
+                        // Extraer valores de la columna J desde la fila 13 (índice 12)
+                        const columnJData = jsonData
+                            .slice(12) // Empezar desde fila 13 (índice 12)
+                            .map((row) => row[columnJIndex])
+                            .filter((value) => value !== undefined && value !== null && value !== '' && !isNaN(value) && typeof value === 'number')
+
+                        // Obtener el valor más alto
+                        if (columnJData.length > 0) {
+                            const maxValue = Math.max(...columnJData)
+                            setRelacionTransformacion(maxValue)
+                        }
+                    }
+
+                    // Leer la hoja de Resistencia del devanado de. para obtener la resistencia de devanados
+                    if (sheetName === 'Resistencia del devanado de.') {
+                        const sheet = workbook.Sheets[sheetName]
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
+
+                        // La hoja empieza en columna B del Excel
+                        // Columna G del Excel es el índice 5 (0-indexed en el array)
+                        // porque B=0, C=1, D=2, E=3, F=4, G=5
+                        const columnGIndex = 5
+
+                        // Extraer valores de la columna G (todos los valores numéricos)
+                        const columnGData = jsonData
+                            .map((row) => row[columnGIndex])
+                            .filter((value) => value !== undefined && value !== null && value !== '' && !isNaN(value) && typeof value === 'number')
+
+                        // Obtener el valor más alto
+                        if (columnGData.length > 0) {
+                            const maxValue = Math.max(...columnGData)
+                            setResistenciaDevanados(maxValue)
                         }
                     }
                 })
@@ -198,6 +294,8 @@ export const NewTransformerMeasurement = () => {
         setce1('')
         setce2('')
         setce3('')
+        setRelacionTransformacion('')
+        setResistenciaDevanados('')
     }
 
     const deleteDocEnsayo = (e) => {
