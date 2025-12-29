@@ -39,7 +39,6 @@ export const NewTransformerMeasurement = () => {
     const [ce1, setce1] = useState('')
     const [ce2, setce2] = useState('')
     const [ce3, setce3] = useState('')
-    const [corrienteExcitacion, setCorrienteExcitacion] = useState('')
     const [factorPotencia, setFactorPotencia] = useState('')
     const [inhibidorOxidacion, setInhibidorOxidacion] = useState('')
     const [compuestoFuranico, setCompuestoFuranico] = useState('')
@@ -178,20 +177,26 @@ export const NewTransformerMeasurement = () => {
                             }
                         })
 
-                        // Obtener el valor máximo para cada fase
+                        // Obtener el valor máximo para cada fase, o 1 por defecto
                         if (valoresPorFase.A.length > 0) {
                             const maxA = Math.max(...valoresPorFase.A)
                             setce1(maxA)
+                        } else {
+                            setce1(1)
                         }
 
                         if (valoresPorFase.B.length > 0) {
                             const maxB = Math.max(...valoresPorFase.B)
                             setce2(maxB)
+                        } else {
+                            setce2(1)
                         }
 
                         if (valoresPorFase.C.length > 0) {
                             const maxC = Math.max(...valoresPorFase.C)
                             setce3(maxC)
+                        } else {
+                            setce3(1)
                         }
                     }
 
@@ -211,10 +216,12 @@ export const NewTransformerMeasurement = () => {
                             .map((row) => row[columnJIndex])
                             .filter((value) => value !== undefined && value !== null && value !== '' && !isNaN(value) && typeof value === 'number')
 
-                        // Obtener el valor más alto
+                        // Obtener el valor más alto, o 1 por defecto
                         if (columnJData.length > 0) {
                             const maxValue = Math.max(...columnJData)
                             setRelacionTransformacion(maxValue)
+                        } else {
+                            setRelacionTransformacion(1)
                         }
                     }
 
@@ -233,10 +240,35 @@ export const NewTransformerMeasurement = () => {
                             .map((row) => row[columnGIndex])
                             .filter((value) => value !== undefined && value !== null && value !== '' && !isNaN(value) && typeof value === 'number')
 
-                        // Obtener el valor más alto
+                        // Obtener el valor más alto, o 1 por defecto
                         if (columnGData.length > 0) {
                             const maxValue = Math.max(...columnGData)
                             setResistenciaDevanados(maxValue)
+                        } else {
+                            setResistenciaDevanados(1)
+                        }
+                    }
+
+                    // Leer la hoja de Borna H FP & CAP - C2 para obtener el factor de potencia
+                    if (sheetName === 'Borna H FP & CAP - C2') {
+                        const sheet = workbook.Sheets[sheetName]
+
+                        // Leer celdas K19, K20, K21, K22
+                        const valores = []
+                        const celdas = ['K19', 'K20', 'K21', 'K22']
+
+                        celdas.forEach(celda => {
+                            if (sheet[celda] && !isNaN(sheet[celda].v) && typeof sheet[celda].v === 'number') {
+                                valores.push(sheet[celda].v)
+                            }
+                        })
+
+                        // Obtener el valor más alto, o 1 por defecto
+                        if (valores.length > 0) {
+                            const maxValue = Math.max(...valores)
+                            setFactorPotencia(maxValue)
+                        } else {
+                            setFactorPotencia(1)
                         }
                     }
                 })
@@ -259,26 +291,29 @@ export const NewTransformerMeasurement = () => {
                 const data = new Uint8Array(e.target.result)
                 const workbook = XLSX.read(data, {type: 'array'})
 
-                // Leer la hoja de corriente de exitación
+                // Leer la hoja de datos de ensayo
                 workbook.SheetNames.forEach(sheetName => {
                     if (sheetName === 'Datos') {
                         const sheet = workbook.Sheets[sheetName]
 
-                        setColor(sheet['B2'].v)
-                        setTensionInterfacial(sheet['B3'].v)
-                        setRigidezDielectrica(sheet['B5'].v)
-                        setContenidoHumedad(sheet['B6'].v)
-                        setFactorPotenciaLiquida(sheet['B8'].v)
+                        // Leer valores de análisis físico-químico con validación de existencia, o 1 por defecto
+                        setColor(sheet['B2'] ? sheet['B2'].v : 1)
+                        setTensionInterfacial(sheet['B3'] ? sheet['B3'].v : 1)
+                        setNumeroAcidez(sheet['B4'] ? sheet['B4'].v : 1)
+                        setRigidezDielectrica(sheet['B5'] ? sheet['B5'].v : 1)
+                        setContenidoHumedad(sheet['B6'] ? sheet['B6'].v : 1)
+                        setFactorPotenciaLiquida(sheet['B8'] ? sheet['B8'].v : 1)
+                        setInhibidorOxidacion(sheet['B13'] ? sheet['B13'].v : 1)
+                        setCompuestoFuranico(sheet['H8'] ? sheet['H8'].v : 1)
 
-                        setHidrogeno(sheet['E2'].v)
-                        setMetano(sheet['E3'].v)
-                        setMonoxidoCarbono(sheet['E4'].v)
-                        setEtileno(sheet['E5'].v)
-                        setEtano(sheet['E6'].v)
-                        setAcetileno(sheet['E7'].v)
-                        setDioxidoCarbono(sheet['E13'].v)
-
-                        setCompuestoFuranico(sheet['H8'].v)
+                        // Leer valores de análisis de gases disueltos, o 1 por defecto
+                        setHidrogeno(sheet['E2'] ? sheet['E2'].v : 1)
+                        setMetano(sheet['E3'] ? sheet['E3'].v : 1)
+                        setMonoxidoCarbono(sheet['E4'] ? sheet['E4'].v : 1)
+                        setEtileno(sheet['E5'] ? sheet['E5'].v : 1)
+                        setEtano(sheet['E6'] ? sheet['E6'].v : 1)
+                        setAcetileno(sheet['E7'] ? sheet['E7'].v : 1)
+                        setDioxidoCarbono(sheet['E13'] ? sheet['E13'].v : 1)
                     }
                 })
             }
@@ -296,6 +331,7 @@ export const NewTransformerMeasurement = () => {
         setce3('')
         setRelacionTransformacion('')
         setResistenciaDevanados('')
+        setFactorPotencia('')
     }
 
     const deleteDocEnsayo = (e) => {
@@ -303,9 +339,12 @@ export const NewTransformerMeasurement = () => {
         setDocEnsayo([])
         setColor('')
         setTensionInterfacial('')
+        setNumeroAcidez('')
         setRigidezDielectrica('')
         setContenidoHumedad('')
         setFactorPotenciaLiquida('')
+        setInhibidorOxidacion('')
+        setCompuestoFuranico('')
 
         setHidrogeno('')
         setMetano('')
@@ -314,8 +353,6 @@ export const NewTransformerMeasurement = () => {
         setEtano('')
         setAcetileno('')
         setDioxidoCarbono('')
-
-        setCompuestoFuranico('')
     }
 
     const convertFileToBase64 = (file) => {
@@ -336,6 +373,42 @@ export const NewTransformerMeasurement = () => {
             // Leer el archivo como Data URL
             reader.readAsDataURL(file)
         })
+    }
+
+    // Función helper para formatear números con máximo de dígitos totales
+    const formatMaxDigits = (value, maxDigits) => {
+        const num = parseFloat(value)
+        if (isNaN(num)) return 1
+
+        // Convertir a string para contar dígitos
+        const strNum = Math.abs(num).toString()
+        const digits = strNum.replace('.', '').length
+
+        if (digits <= maxDigits) return num
+
+        // Calcular cuántos decimales mantener
+        const integerPart = Math.floor(Math.abs(num)).toString().length
+        const decimals = Math.max(0, maxDigits - integerPart)
+
+        return parseFloat(num.toFixed(decimals))
+    }
+
+    // Función helper para formatear números con máximo de decimales
+    const formatMaxDecimals = (value, maxDecimals) => {
+        const num = parseFloat(value)
+        if (isNaN(num)) return 1
+        return parseFloat(num.toFixed(maxDecimals))
+    }
+
+    // Función para calcular corriente de excitación
+    // Basado en la lógica anterior: retorna 5 si hay datos válidos
+    const calculateCorrienteExcitacion = (c1, c2, c3) => {
+        // Si al menos uno de los valores existe, retornar 5 (lógica original)
+        if (c1 || c2 || c3) {
+            return 5
+        }
+        // Si no hay datos, retornar 1 como fallback
+        return 1
     }
 
     const createMeasurement = async (event) => {
@@ -399,20 +472,20 @@ export const NewTransformerMeasurement = () => {
                 docs,
                 info: {
                     haveFiles,
-                    relacion_transformacion: relacionTransformacion,
-                    resistencia_devanados: resistenciaDevanados,
-                    corriente_excitacion: corrienteExcitacion,
-                    factor_potencia: factorPotencia,
+                    relacion_transformacion: formatMaxDigits(relacionTransformacion, 4),
+                    resistencia_devanados: formatMaxDigits(resistenciaDevanados, 4),
+                    corriente_excitacion: calculateCorrienteExcitacion(ce1, ce2, ce3),
+                    factor_potencia: formatMaxDigits(factorPotencia, 4),
                     inhibidor_oxidacion: inhibidorOxidacion,
                     compuestos_furanicos: compuestoFuranico,
                     transformadores: transformador,
                     analisis_aceite_fisico_quimico: {
                         rigidez_dieletrica: rigidezDielectrica,
                         tension_interfacial: tensionInterfacial,
-                        numero_acidez: numeroAcidez,
+                        numero_acidez: formatMaxDecimals(numeroAcidez, 2),
                         contenido_humedad: contenidoHumedad,
                         color: color,
-                        factor_potencia_liquido: factorPotenciaLiquida.toFixed(2)
+                        factor_potencia_liquido: parseFloat(factorPotenciaLiquida).toFixed(2)
                     },
                     analisis_gases_disueltos: {
                         hidrogeno: hidrogeno,
@@ -881,7 +954,7 @@ export const NewTransformerMeasurement = () => {
                                 <SButton onClick={showCancelModal}>Cancelar</SButton>
                             </Col>
                             <Col xs={12} lg={3}>
-                                <PButton>Enviar</PButton>
+                                <PButton disabled={!transformador}>Enviar</PButton>
                             </Col>
                             <Col xs={0} lg={3}>
                             </Col>

@@ -18,13 +18,23 @@ export const PButton = styled.button `
     margin-bottom: 15px;
     width: 100%;
     font-weight: 600;
-    
+
     &:hover {
         background: #E58D8D;
     }
 
     &:active {
         background: #A31F00;
+    }
+
+    &:disabled {
+        background: #CCCCCC;
+        cursor: not-allowed;
+        opacity: 0.6;
+
+        &:hover {
+            background: #CCCCCC;
+        }
     }
 `
 
