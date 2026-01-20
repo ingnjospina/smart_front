@@ -13,7 +13,7 @@ import {
     StyledTD,
     StyledTH
 } from '../tools/styleContent'
-import {getPronosticosTransformadores} from '../../services/pronostico.services'
+import {getPronosticosTransformadores, sendPronosticoTransformadorEmail} from '../../services/pronostico.services'
 import {getTransformadores} from '../../services/transformer.services'
 import {Spinner} from '../tools/spinner'
 import {UseLogout} from '../../hooks/useLogout'
@@ -31,10 +31,30 @@ export const PronosticosTransformadoresTable = () => {
 
     // Estado para el modal de detalle
     const [show, setShow] = useState(false)
-    const [title] = useState('')
-    const [message] = useState('')
+    const [title, setTitle] = useState('')
+    const [message, setMessage] = useState('')
+    const [sendingEmail, setSendingEmail] = useState(null)
 
     const handleCloseModal = () => setShow(false)
+
+    // Función para enviar email
+    const handleSendEmail = async (pronosticoId) => {
+        try {
+            setSendingEmail(pronosticoId)
+            const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
+            const response = await sendPronosticoTransformadorEmail(user.token, pronosticoId)
+            setTitle('Correo Enviado')
+            setMessage(response.message || 'El correo ha sido enviado exitosamente.')
+            setShow(true)
+        } catch (error) {
+            console.error('Error al enviar correo:', error)
+            setTitle('Error')
+            setMessage(error.response?.data?.message || 'Error al enviar el correo.')
+            setShow(true)
+        } finally {
+            setSendingEmail(null)
+        }
+    }
 
     useEffect(() => {
         const fetchData = async () => {
@@ -227,6 +247,7 @@ export const PronosticosTransformadoresTable = () => {
                             <StyledTH>Alerta</StyledTH>
                             <StyledTH>Fecha Óptima</StyledTH>
                             <StyledTH>Fecha Creación</StyledTH>
+                            <StyledTH>Acciones</StyledTH>
                         </tr>
                         </thead>
                         <tbody>
@@ -254,8 +275,38 @@ export const PronosticosTransformadoresTable = () => {
                                 </StyledTD>
                                 <StyledTD>{item.pronostico.fecha_optima_sugerida || 'N/A'}</StyledTD>
                                 <StyledTD>{new Date(item.pronostico.fecha_creacion).toLocaleString()}</StyledTD>
+                                <StyledTD>
+                                    <button
+                                        onClick={() => handleSendEmail(item.pronostico.idpronostico_transformador)}
+                                        disabled={sendingEmail === item.pronostico.idpronostico_transformador}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: sendingEmail === item.pronostico.idpronostico_transformador ? 'wait' : 'pointer',
+                                            padding: '5px',
+                                            borderRadius: '4px',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                        title="Enviar por correo"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="20"
+                                            height="20"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke={sendingEmail === item.pronostico.idpronostico_transformador ? '#6c757d' : '#007bff'}
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                            <polyline points="22,6 12,13 2,6"></polyline>
+                                        </svg>
+                                    </button>
+                                </StyledTD>
                             </tr>
-                        )) : <tr><StyledTD colSpan="8" className="text-center">No hay pronósticos disponibles.</StyledTD>
+                        )) : <tr><StyledTD colSpan="9" className="text-center">No hay pronósticos disponibles.</StyledTD>
                         </tr>}
                         </tbody>
                     </Table>

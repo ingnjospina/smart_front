@@ -58,3 +58,14 @@ export const getPronosticoTransformadorDetail = async (token, id) => {
 	const { data } = await axios.get(`${baseUrl}transformadores/${id}/`, config)
 	return data
 }
+
+export const sendPronosticoTransformadorEmail = async (token, id) => {
+	const config = {
+		headers: {
+			authorization: 'Bearer ' + token
+		}
+	}
+
+	const { data } = await axios.post(`${baseUrl}transformadores/${id}/email/`, {}, config)
+	return data
+}
