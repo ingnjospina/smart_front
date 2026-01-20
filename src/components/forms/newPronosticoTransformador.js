@@ -1,54 +1,71 @@
 import '../../styles/spinner.css'
-import React, {useEffect, useState} from 'react'
+import * as XLSX from 'xlsx'
+import * as d3 from 'd3'
+import React, {useEffect, useState, useRef} from 'react'
 import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
 import {DropZone} from '../tools/dropZone'
 import {
     DivForm,
     InputForm,
+    LabelForm,
     PButton,
     SButton,
     StyledForm,
     StyledFormSelect,
-    TitleReport
+    TitleReport,
+    SectionCard,
+    SectionTitle,
+    ChartContainer
 } from '../tools/styleContent'
 import {Alert, Container} from 'react-bootstrap'
 import {CancelAceptModal} from '../modals/cancelAceptModal'
 import {getTransformadores} from '../../services/transformer.services'
-import {createPronostico} from '../../services/pronostico.services'
+import {createPronosticoTransformador} from '../../services/pronostico.services'
 import {Spinner} from '../tools/spinner'
 import {useNavigate} from 'react-router-dom'
 import {UseLogout} from '../../hooks/useLogout'
-import RequiredLabel from "../tools/requiredLabel"
-import {dsvFormat} from 'd3'
-import * as XLSX from 'xlsx'
+import RequiredLabel from "../tools/requiredLabel";
 
 export const NewPronosticoTransformador = () => {
 
     const nav = useNavigate()
     const logout = UseLogout()
 
+    const [userData, setUserData] = useState({})
+
     const [transformador, setTransformador] = useState('')
     const [transformadores, setTransformadores] = useState([])
     const [loadingTransfo, setLoadingTransfo] = useState(true)
 
-    const [docArchivo1, setDocArchivo1] = useState([])
-    const [docArchivo2, setDocArchivo2] = useState([])
-    const [docArchivo3, setDocArchivo3] = useState([])
-
-    const [tiempoApertura, setTiempoApertura] = useState('')
-    const [tiempoCierre, setTiempoCierre] = useState('')
-    const [numeroOperaciones, setNumeroOperaciones] = useState('')
-    const [corrienteFalla, setCorrienteFalla] = useState('')
-    const [resistenciaContactos, setResistenciaContactos] = useState('')
+    const [relacionTransformacion, setRelacionTransformacion] = useState('')
+    const [resistenciaDevanados, setResistenciaDevanados] = useState('')
+    const [ce1, setce1] = useState('')
+    const [ce2, setce2] = useState('')
+    const [ce3, setce3] = useState('')
+    const [factorPotencia, setFactorPotencia] = useState('')
+    const [inhibidorOxidacion, setInhibidorOxidacion] = useState('')
+    const [gradoPolimerizacion, setGradoPolimerizacion] = useState('')
+    const [rigidezDielectrica, setRigidezDielectrica] = useState('')
+    const [tensionInterfacial, setTensionInterfacial] = useState('')
+    const [numeroAcidez, setNumeroAcidez] = useState('')
+    const [contenidoHumedad, setContenidoHumedad] = useState('')
+    const [factorPotenciaLiquida, setFactorPotenciaLiquida] = useState('')
+    const [color, setColor] = useState('')
+    const [hidrogeno, setHidrogeno] = useState('')
+    const [metano, setMetano] = useState('')
+    const [etano, setEtano] = useState('')
+    const [etileno, setEtileno] = useState('')
+    const [acetileno, setAcetileno] = useState('')
+    const [dioxidoCarbono, setDioxidoCarbono] = useState('')
+    const [monoxidoCarbono, setMonoxidoCarbono] = useState('')
     const [fechaMantenimiento, setFechaMantenimiento] = useState('')
-    // eslint-disable-next-line no-unused-vars
-    const [fase, setFase] = useState('') // Almacena la fase (A, B, C) detectada del CSV
-    const [faseDetectada, setFaseDetectada] = useState(false) // Indica si se detectó una fase válida
+    const [docElec, setDocElec] = useState([])
+    const [docEnsayo, setDocEnsayo] = useState([])
+    const [docBaseDatos, setDocBaseDatos] = useState([])
+    const [chartData, setChartData] = useState([])
+    const chartRef = useRef(null)
 
-    const [archivos2y3Habilitados, setArchivos2y3Habilitados] = useState(false)
-    const [errorFase, setErrorFase] = useState(false)
-    const [errorNumeroOperaciones, setErrorNumeroOperaciones] = useState(false)
 
     const [formError, setFormError] = useState(false)
     const [show, setShow] = useState(false)
@@ -57,6 +74,7 @@ export const NewPronosticoTransformador = () => {
     const [subTitle, setSubTitle] = useState('')
     const [message, setMessage] = useState('')
     const [showSpinner, setShowSpinner] = useState(false)
+    const [isSuccess, setIsSuccess] = useState(false)
 
     const handleCloseModal = () => {
         setShow(false)
@@ -64,8 +82,10 @@ export const NewPronosticoTransformador = () => {
 
     useEffect(() => {
         const fetchTransformadores = async () => {
+
             try {
                 const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
+                setUserData(user)
                 const response = await getTransformadores(user.token)
                 setTransformadores(response)
                 setLoadingTransfo(false)
@@ -79,700 +99,463 @@ export const NewPronosticoTransformador = () => {
         })
     }, [])
 
-    // Verificar si se deben habilitar los archivos 2 y 3
+    // Renderizar gráfica con D3 cuando cambie chartData
     useEffect(() => {
-        // Solo habilitar si hay fase detectada Y hay transformador seleccionado
-        if (faseDetectada && transformador) {
-            setArchivos2y3Habilitados(true)
-        } else {
-            setArchivos2y3Habilitados(false)
-        }
-    }, [faseDetectada, transformador])
+        if (chartData.length === 0 || !chartRef.current) return
 
-    // Reprocesar archivo Excel cuando cambie el transformador seleccionado
-    useEffect(() => {
-        // Si hay un transformador seleccionado, fase detectada y archivo Excel ya cargado
-        if (transformador && faseDetectada && docArchivo2.length > 0) {
-            // Limpiar el número de operaciones actual
-            setNumeroOperaciones('')
-            setErrorNumeroOperaciones(false)
+        // Limpiar gráfica anterior
+        d3.select(chartRef.current).selectAll('*').remove()
 
-            // Reprocesar el archivo
-            const file = docArchivo2[0]
+        // Dimensiones
+        const margin = {top: 20, right: 30, bottom: 60, left: 60}
+        const width = 700 - margin.left - margin.right
+        const height = 350 - margin.top - margin.bottom
+
+        // Crear SVG
+        const svg = d3.select(chartRef.current)
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`)
+
+        // Escalas
+        const x = d3.scaleBand()
+            .domain(chartData.map(d => d.date))
+            .range([0, width])
+            .padding(0.1)
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(chartData, d => d.promedio) * 1.1])
+            .range([height, 0])
+
+        // Eje X
+        svg.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x))
+            .selectAll('text')
+            .attr('transform', 'rotate(-45)')
+            .style('text-anchor', 'end')
+            .style('font-size', '10px')
+
+        // Eje Y
+        svg.append('g')
+            .call(d3.axisLeft(y))
+
+        // Etiqueta eje Y
+        svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 0 - margin.left)
+            .attr('x', 0 - (height / 2))
+            .attr('dy', '1em')
+            .style('text-anchor', 'middle')
+            .style('font-size', '12px')
+            .text('Promedio AI603')
+
+        // Línea
+        const line = d3.line()
+            .x(d => x(d.date) + x.bandwidth() / 2)
+            .y(d => y(d.promedio))
+
+        svg.append('path')
+            .datum(chartData)
+            .attr('fill', 'none')
+            .attr('stroke', '#007bff')
+            .attr('stroke-width', 2)
+            .attr('d', line)
+
+        // Puntos
+        svg.selectAll('.dot')
+            .data(chartData)
+            .enter()
+            .append('circle')
+            .attr('class', 'dot')
+            .attr('cx', d => x(d.date) + x.bandwidth() / 2)
+            .attr('cy', d => y(d.promedio))
+            .attr('r', 4)
+            .attr('fill', '#007bff')
+
+    }, [chartData])
+
+    const loadFileElect = (list) => {
+        setShowSpinner(true)
+        setDocElec((prevList) => [...prevList, ...list])
+        const file = list[0]
+        if (file) {
             const reader = new FileReader()
 
+            // Leer el archivo como un ArrayBuffer
             reader.onload = (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result)
-                    const workbook = XLSX.read(data, { type: 'array' })
+                const data = new Uint8Array(e.target.result)
+                const workbook = XLSX.read(data, {type: 'array'})
 
-                    if (!workbook.SheetNames.includes('BASE')) {
-                        setErrorNumeroOperaciones(true)
-                        return
-                    }
+                // Leer la hoja de corriente de exitación
+                workbook.SheetNames.forEach(sheetName => {
+                    // NUEVA FUNCIONALIDAD: Buscar máximos por fase A, B, C
+                    if (sheetName === 'Exciting Current') {
+                        const sheet = workbook.Sheets[sheetName]
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
 
-                    const worksheet = workbook.Sheets['BASE']
-                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
+                        // Columna C del Excel (índice 1) contiene Phase (A, B, C)
+                        // Columna G del Excel (índice 5) contiene Watt losses [W]
+                        // Nota: El array empieza en columna B del Excel, por eso B=0, C=1, D=2, E=3, F=4, G=5
+                        const colPhaseIndex = 1
+                        const colValueIndex = 5
 
-                    let headerRowIndex = -1
-                    let headers = []
-
-                    for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                        const row = rawData[i]
-                        if (row.some(cell => cell && cell.toString().includes('Observaciones'))) {
-                            headerRowIndex = i
-                            headers = row
-                            break
+                        // Objetos para almacenar valores por fase
+                        const valoresPorFase = {
+                            A: [],
+                            B: [],
+                            C: []
                         }
-                    }
 
-                    if (headerRowIndex === -1) {
-                        setErrorNumeroOperaciones(true)
-                        return
-                    }
+                        // Recorrer todas las filas y agrupar valores por fase
+                        jsonData.forEach((row) => {
+                            const fase = row[colPhaseIndex]
+                            const valor = row[colValueIndex]
 
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                        header: headers,
-                        range: headerRowIndex + 1,
-                        defval: ''
-                    })
-
-                    const transformadorSeleccionado = transformadores.find(
-                        t => t.idtransformadores === parseInt(transformador)
-                    )
-
-                    if (!transformadorSeleccionado) {
-                        setErrorNumeroOperaciones(true)
-                        return
-                    }
-
-                    const dispositivoNombre = transformadorSeleccionado.nombre
-
-                    const filasFiltradas = jsonData.filter(row => {
-                        const observaciones = row['Observaciones'] || ''
-                        return observaciones.toString().trim() === dispositivoNombre.trim()
-                    })
-
-                    if (filasFiltradas.length === 0) {
-                        setErrorNumeroOperaciones(true)
-                        return
-                    }
-
-                    let valoresR = []
-                    filasFiltradas.forEach(row => {
-                        const valorR = row['Numero Operaciones Tripolar']
-                        if (valorR && valorR !== '' && !isNaN(parseFloat(valorR))) {
-                            valoresR.push(parseFloat(valorR))
-                        }
-                    })
-
-                    if (valoresR.length > 0) {
-                        const maxR = Math.max(...valoresR)
-                        setNumeroOperaciones(maxR)
-                        setErrorNumeroOperaciones(false)
-                        return
-                    }
-
-                    let valoresFases = []
-                    filasFiltradas.forEach(row => {
-                        if (fase === 'G') {
-                            // Para fase genérica, tomar valores de todas las fases
-                            const valorA = row['Numero Operaciones Polo A']
-                            const valorB = row['Numero Operaciones Polo B']
-                            const valorC = row['Numero Operaciones Polo c']
-
-                            if (valorA && valorA !== '' && !isNaN(parseFloat(valorA))) {
-                                valoresFases.push(parseFloat(valorA))
+                            if (fase === 'A' && valor !== null && valor !== undefined && !isNaN(valor) && typeof valor === 'number') {
+                                valoresPorFase.A.push(valor)
+                            } else if (fase === 'B' && valor !== null && valor !== undefined && !isNaN(valor) && typeof valor === 'number') {
+                                valoresPorFase.B.push(valor)
+                            } else if (fase === 'C' && valor !== null && valor !== undefined && !isNaN(valor) && typeof valor === 'number') {
+                                valoresPorFase.C.push(valor)
                             }
-                            if (valorB && valorB !== '' && !isNaN(parseFloat(valorB))) {
-                                valoresFases.push(parseFloat(valorB))
-                            }
-                            if (valorC && valorC !== '' && !isNaN(parseFloat(valorC))) {
-                                valoresFases.push(parseFloat(valorC))
-                            }
+                        })
+
+                        // Obtener el valor máximo para cada fase
+                        if (valoresPorFase.A.length > 0) {
+                            const maxA = Math.max(...valoresPorFase.A)
+                            setce1(maxA)
                         } else {
-                            // Para fase específica, tomar solo esa fase
-                            let valorFase = null
-
-                            if (fase === 'A') {
-                                valorFase = row['Numero Operaciones Polo A']
-                            } else if (fase === 'B') {
-                                valorFase = row['Numero Operaciones Polo B']
-                            } else if (fase === 'C') {
-                                valorFase = row['Numero Operaciones Polo c']
-                            }
-
-                            if (valorFase && valorFase !== '' && !isNaN(parseFloat(valorFase))) {
-                                valoresFases.push(parseFloat(valorFase))
-                            }
+                            setce1('')
                         }
-                    })
 
-                    if (valoresFases.length > 0) {
-                        const maxFase = Math.max(...valoresFases)
-                        setNumeroOperaciones(maxFase)
-                        setErrorNumeroOperaciones(false)
-                        return
+                        if (valoresPorFase.B.length > 0) {
+                            const maxB = Math.max(...valoresPorFase.B)
+                            setce2(maxB)
+                        } else {
+                            setce2('')
+                        }
+
+                        if (valoresPorFase.C.length > 0) {
+                            const maxC = Math.max(...valoresPorFase.C)
+                            setce3(maxC)
+                        } else {
+                            setce3('')
+                        }
                     }
 
-                    setErrorNumeroOperaciones(true)
+                    // Leer la hoja de Ratio Prim-Sec para obtener la relación de transformación
+                    if (sheetName === 'Ratio Prim-Sec') {
+                        const sheet = workbook.Sheets[sheetName]
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
 
-                } catch (error) {
-                    console.error('Error al reprocesar el archivo Excel:', error)
-                    setErrorNumeroOperaciones(true)
-                }
+                        // La hoja empieza en columna B del Excel, por lo que hay un offset
+                        // Columna J del Excel es el índice 8 (0-indexed en el array)
+                        // porque B=0, C=1, D=2, E=3, F=4, G=5, H=6, I=7, J=8
+                        const columnJIndex = 8
+
+                        // Extraer valores de la columna J desde la fila 13 (índice 12)
+                        const columnJData = jsonData
+                            .slice(12) // Empezar desde fila 13 (índice 12)
+                            .map((row) => row[columnJIndex])
+                            .filter((value) => value !== undefined && value !== null && value !== '' && !isNaN(value) && typeof value === 'number')
+
+                        // Obtener el valor más alto
+                        if (columnJData.length > 0) {
+                            const maxValue = Math.max(...columnJData)
+                            setRelacionTransformacion(maxValue)
+                        } else {
+                            setRelacionTransformacion('')
+                        }
+                    }
+
+                    // Leer la hoja de Resistencia del devanado de. para obtener la resistencia de devanados
+                    if (sheetName === 'Resistencia del devanado de.') {
+                        const sheet = workbook.Sheets[sheetName]
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
+
+                        // La hoja empieza en columna B del Excel
+                        // Columna G del Excel es el índice 5 (0-indexed en el array)
+                        // porque B=0, C=1, D=2, E=3, F=4, G=5
+                        const columnGIndex = 5
+
+                        // Extraer valores de la columna G (todos los valores numéricos)
+                        const columnGData = jsonData
+                            .map((row) => row[columnGIndex])
+                            .filter((value) => value !== undefined && value !== null && value !== '' && !isNaN(value) && typeof value === 'number')
+
+                        // Obtener el valor más alto
+                        if (columnGData.length > 0) {
+                            const maxValue = Math.max(...columnGData)
+                            setResistenciaDevanados(maxValue)
+                        } else {
+                            setResistenciaDevanados('')
+                        }
+                    }
+
+                    // Leer la hoja de Borna H FP & CAP - C2 para obtener el factor de potencia
+                    if (sheetName === 'Borna H FP & CAP - C2') {
+                        const sheet = workbook.Sheets[sheetName]
+
+                        // Leer celdas K19, K20, K21, K22
+                        const valores = []
+                        const celdas = ['K19', 'K20', 'K21', 'K22']
+
+                        celdas.forEach(celda => {
+                            if (sheet[celda] && !isNaN(sheet[celda].v) && typeof sheet[celda].v === 'number') {
+                                valores.push(sheet[celda].v)
+                            }
+                        })
+
+                        // Obtener el valor más alto
+                        if (valores.length > 0) {
+                            const maxValue = Math.max(...valores)
+                            setFactorPotencia(maxValue)
+                        } else {
+                            setFactorPotencia('')
+                        }
+                    }
+                })
             }
 
             reader.readAsArrayBuffer(file)
         }
-    }, [transformador, transformadores, fase, faseDetectada, docArchivo2])
-
-    const loadFileArchivo1 = (list) => {
-        setShowSpinner(true)
-        setDocArchivo1((prevList) => [...prevList, ...list])
-
-        // Procesar CSV para extraer corriente de falla
-        const file = list[0]
-        const reader = new FileReader()
-
-        reader.onload = (e) => {
-            try {
-                const text = e.target.result
-                // Parsear CSV con punto y coma como delimitador
-                const semicolonParser = dsvFormat(';')
-                const data = semicolonParser.parse(text)
-
-                // El nombre de la columna de timestamp puede incluir BOM y comillas
-                const timestampColumn = data.columns[0]
-
-                // Filtrar por "Functions structure" que contenga "Circuit Breaker:Circuit break."
-                // y por "Name" que contenga "Break.-current phs"
-                const filteredData = data.filter(row =>
-                    row['Functions structure'] &&
-                    row['Functions structure'].includes('Circuit Breaker:Circuit break.') &&
-                    row['Name'] &&
-                    row['Name'].includes('Break.-current phs')
-                )
-
-                if (filteredData.length === 0) {
-                    console.warn('No se encontraron datos con los criterios especificados en el archivo CSV')
-                    setErrorFase(true)
-                    setFaseDetectada(false)
-                    window.scrollTo({top: 0, behavior: 'smooth'})
-                    setShowSpinner(false)
-                    return
-                }
-
-                // Ordenar por timestamp (más reciente primero)
-                filteredData.sort((a, b) => {
-                    const dateA = new Date(a[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
-                    const dateB = new Date(b[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
-                    return dateB - dateA
-                })
-
-                // Obtener el primer resultado (más reciente)
-                const mostRecent = filteredData[0]
-
-                // Extraer el valor numérico (ej: "1647 A" -> 1647)
-                const valueMatch = mostRecent['Value'].match(/(\d+(?:\.\d+)?)/);
-                if (valueMatch) {
-                    const numericValue = parseFloat(valueMatch[1])
-                    setCorrienteFalla(numericValue)
-                }
-
-                // Extraer la fase (A, B, o C)
-                const faseMatch = mostRecent['Name'].match(/phs ([ABC])/);
-                if (faseMatch) {
-                    setFase(faseMatch[1])
-                    setFaseDetectada(true)
-                    setErrorFase(false)
-                } else {
-                    // Si no se detecta fase específica, usar fase genérica 'G'
-                    console.log('No se detectó fase específica, usando fase genérica G')
-                    setFase('G')
-                    setFaseDetectada(true)
-                    setErrorFase(false)
-                }
-
-                // ========== EXTRACCIÓN DEL TIEMPO DE APERTURA ==========
-                // Filtrar por "Definitive trip"
-                const definitiveTrips = data.filter(row =>
-                    row['Functions structure'] &&
-                    row['Functions structure'].includes('Circuit Breaker:Circuit break.') &&
-                    row['Name'] &&
-                    row['Name'].includes('Definitive trip')
-                )
-
-                if (definitiveTrips.length >= 2) {
-                    // Ordenar por timestamp (más reciente primero)
-                    definitiveTrips.sort((a, b) => {
-                        const dateA = new Date(a[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
-                        const dateB = new Date(b[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
-                        return dateB - dateA
-                    })
-
-                    // Obtener los dos registros más recientes
-                    const trip1 = definitiveTrips[0]
-                    const trip2 = definitiveTrips[1]
-
-                    // Verificar que tengan valores on/off o true/false
-                    const val1 = trip1['Value'].toLowerCase()
-                    const val2 = trip2['Value'].toLowerCase()
-
-                    let offRecord, onRecord
-
-                    // Determinar cuál es on y cuál es off
-                    if ((val1 === 'off' || val1 === 'false') && (val2 === 'on' || val2 === 'true')) {
-                        offRecord = trip1
-                        onRecord = trip2
-                    } else if ((val2 === 'off' || val2 === 'false') && (val1 === 'on' || val1 === 'true')) {
-                        offRecord = trip2
-                        onRecord = trip1
-                    }
-
-                    if (offRecord && onRecord) {
-                        // Extraer los valores de "Relative time"
-                        const offTime = offRecord['Relative time']
-                        const onTime = onRecord['Relative time']
-
-                        // Convertir "Relative time" a milisegundos
-                        const parseRelativeTime = (timeStr) => {
-                            // Formato: "00:00:00:00.499" o "-00:00:00:00.001"
-                            const isNegative = timeStr.startsWith('-')
-                            const cleanStr = timeStr.replace('-', '')
-                            const parts = cleanStr.split(':')
-
-                            if (parts.length === 4) {
-                                const seconds = parseFloat(parts[3])
-                                const minutes = parseInt(parts[2]) || 0
-                                const hours = parseInt(parts[1]) || 0
-                                const days = parseInt(parts[0]) || 0
-
-                                const totalMs = (days * 24 * 60 * 60 * 1000) +
-                                               (hours * 60 * 60 * 1000) +
-                                               (minutes * 60 * 1000) +
-                                               (seconds * 1000)
-
-                                return isNegative ? -totalMs : totalMs
-                            }
-                            return 0
-                        }
-
-                        const offTimeMs = parseRelativeTime(offTime)
-                        const onTimeMs = parseRelativeTime(onTime)
-
-                        // Calcular tiempo de apertura: off - on
-                        const tiempoAperturaMs = Math.abs(offTimeMs - onTimeMs)
-
-                        setTiempoApertura(Math.round(tiempoAperturaMs))
-
-                        console.log('Tiempo de apertura calculado:', {
-                            offTime,
-                            onTime,
-                            offTimeMs,
-                            onTimeMs,
-                            tiempoAperturaMs
-                        })
-                    }
-                }
-                // ========== FIN EXTRACCIÓN DEL TIEMPO DE APERTURA ==========
-
-                console.log('CSV procesado exitosamente:', {
-                    corrienteFalla: valueMatch ? valueMatch[1] : null,
-                    fase: fase,
-                    registro: mostRecent
-                })
-
-            } catch (error) {
-                console.error('Error al procesar el archivo CSV:', error)
-                setErrorFase(true)
-                setFaseDetectada(false)
-                window.scrollTo({top: 0, behavior: 'smooth'})
-            }
-            setShowSpinner(false)
-        }
-
-        reader.onerror = (error) => {
-            console.error('Error al leer el archivo:', error)
-            setShowSpinner(false)
-        }
-
-        reader.readAsText(file)
+        setShowSpinner(false)
     }
 
-    const loadFileArchivo2 = (list) => {
+    const loadFileEnsayo = (list) => {
         setShowSpinner(true)
-        setDocArchivo2((prevList) => [...prevList, ...list])
-
-        // Procesar Excel para extraer número de operaciones
+        setDocEnsayo((prevList) => [...prevList, ...list])
         const file = list[0]
-        const reader = new FileReader()
+        if (file) {
+            const reader = new FileReader()
 
-        reader.onload = (e) => {
-            try {
+            // Leer el archivo como un ArrayBuffer
+            reader.onload = (e) => {
                 const data = new Uint8Array(e.target.result)
-                const workbook = XLSX.read(data, { type: 'array' })
+                const workbook = XLSX.read(data, {type: 'array'})
 
-                // Verificar que existe la hoja "BASE"
-                if (!workbook.SheetNames.includes('BASE')) {
-                    console.error('No se encontró la hoja "BASE" en el archivo Excel')
-                    setErrorNumeroOperaciones(true)
-                    window.scrollTo({top: 0, behavior: 'smooth'})
-                    setShowSpinner(false)
-                    return
-                }
+                // Leer la hoja de datos de ensayo
+                workbook.SheetNames.forEach(sheetName => {
+                    if (sheetName === 'Datos') {
+                        const sheet = workbook.Sheets[sheetName]
 
-                // Leer la hoja BASE
-                const worksheet = workbook.Sheets['BASE']
+                        // Leer valores de análisis físico-químico con validación de existencia
+                        setColor(sheet['B2'] ? sheet['B2'].v : '')
+                        setTensionInterfacial(sheet['B3'] ? sheet['B3'].v : '')
+                        setNumeroAcidez(sheet['B4'] ? sheet['B4'].v : '')
+                        setRigidezDielectrica(sheet['B5'] ? sheet['B5'].v : '')
+                        setContenidoHumedad(sheet['B6'] ? sheet['B6'].v : '')
+                        setFactorPotenciaLiquida(sheet['B8'] ? sheet['B8'].v : '')
+                        setInhibidorOxidacion(sheet['B13'] ? sheet['B13'].v : '')
+                        setGradoPolimerizacion(sheet['H8'] ? sheet['H8'].v : '')
 
-                // Convertir a JSON - obtener todas las filas como arrays
-                const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
-
-                // Buscar la fila de headers
-                let headerRowIndex = -1
-                let headers = []
-
-                for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                    const row = rawData[i]
-                    if (row.some(cell => cell && cell.toString().includes('Observaciones'))) {
-                        headerRowIndex = i
-                        headers = row
-                        break
-                    }
-                }
-
-                if (headerRowIndex === -1) {
-                    console.error('No se encontró la fila de headers en el archivo Excel')
-                    setErrorNumeroOperaciones(true)
-                    window.scrollTo({top: 0, behavior: 'smooth'})
-                    setShowSpinner(false)
-                    return
-                }
-
-                // Convertir a JSON usando la fila de headers encontrada
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                    header: headers,
-                    range: headerRowIndex + 1,
-                    defval: ''
-                })
-
-                // Obtener el nombre del transformador seleccionado
-                const transformadorSeleccionado = transformadores.find(
-                    t => t.idtransformadores === parseInt(transformador)
-                )
-
-                if (!transformadorSeleccionado) {
-                    console.error('No se pudo obtener el nombre del transformador seleccionado')
-                    setErrorNumeroOperaciones(true)
-                    window.scrollTo({top: 0, behavior: 'smooth'})
-                    setShowSpinner(false)
-                    return
-                }
-
-                const dispositivoNombre = transformadorSeleccionado.nombre
-
-                // Buscar el dispositivo en la columna Observaciones
-                const filasFiltradas = jsonData.filter(row => {
-                    const observaciones = row['Observaciones'] || ''
-                    return observaciones.toString().trim() === dispositivoNombre.trim()
-                })
-
-                console.log(`Filas encontradas con "${dispositivoNombre}": ${filasFiltradas.length}`)
-
-                if (filasFiltradas.length === 0) {
-                    console.error('No se encontró el dispositivo en el archivo Excel')
-                    setErrorNumeroOperaciones(true)
-                    window.scrollTo({top: 0, behavior: 'smooth'})
-                    setShowSpinner(false)
-                    return
-                }
-
-                // Extraer el mayor valor de la columna R (Numero Operaciones Tripolar)
-                let valoresR = []
-
-                filasFiltradas.forEach(row => {
-                    const valorR = row['Numero Operaciones Tripolar']
-                    if (valorR && valorR !== '' && !isNaN(parseFloat(valorR))) {
-                        valoresR.push(parseFloat(valorR))
+                        // Leer valores de análisis de gases disueltos
+                        setHidrogeno(sheet['E2'] ? sheet['E2'].v : '')
+                        setMetano(sheet['E3'] ? sheet['E3'].v : '')
+                        setMonoxidoCarbono(sheet['E4'] ? sheet['E4'].v : '')
+                        setEtileno(sheet['E5'] ? sheet['E5'].v : '')
+                        setEtano(sheet['E6'] ? sheet['E6'].v : '')
+                        setAcetileno(sheet['E7'] ? sheet['E7'].v : '')
+                        setDioxidoCarbono(sheet['E13'] ? sheet['E13'].v : '')
                     }
                 })
-
-                if (valoresR.length > 0) {
-                    const maxR = Math.max(...valoresR)
-                    setNumeroOperaciones(maxR)
-                    setErrorNumeroOperaciones(false)
-                    console.log('Número de operaciones extraído (columna R):', maxR)
-                    setShowSpinner(false)
-                    return
-                }
-
-                // Si no hay valores en R, buscar en las columnas de fase (S, T, U)
-                console.log('No se encontraron valores en columna R, buscando en columnas de fase...')
-
-                let valoresFases = []
-
-                filasFiltradas.forEach(row => {
-                    if (fase === 'G') {
-                        // Para fase genérica, tomar valores de todas las fases
-                        const valorA = row['Numero Operaciones Polo A']
-                        const valorB = row['Numero Operaciones Polo B']
-                        const valorC = row['Numero Operaciones Polo c']
-
-                        if (valorA && valorA !== '' && !isNaN(parseFloat(valorA))) {
-                            valoresFases.push(parseFloat(valorA))
-                        }
-                        if (valorB && valorB !== '' && !isNaN(parseFloat(valorB))) {
-                            valoresFases.push(parseFloat(valorB))
-                        }
-                        if (valorC && valorC !== '' && !isNaN(parseFloat(valorC))) {
-                            valoresFases.push(parseFloat(valorC))
-                        }
-                    } else {
-                        // Para fase específica, tomar solo esa fase
-                        let valorFase = null
-
-                        if (fase === 'A') {
-                            valorFase = row['Numero Operaciones Polo A']
-                        } else if (fase === 'B') {
-                            valorFase = row['Numero Operaciones Polo B']
-                        } else if (fase === 'C') {
-                            valorFase = row['Numero Operaciones Polo c']
-                        }
-
-                        if (valorFase && valorFase !== '' && !isNaN(parseFloat(valorFase))) {
-                            valoresFases.push(parseFloat(valorFase))
-                        }
-                    }
-                })
-
-                if (valoresFases.length > 0) {
-                    const maxFase = Math.max(...valoresFases)
-                    setNumeroOperaciones(maxFase)
-                    setErrorNumeroOperaciones(false)
-                    console.log(`Número de operaciones extraído (columna Fase ${fase}):`, maxFase)
-                    setShowSpinner(false)
-                    return
-                }
-
-                // No se encontraron mediciones
-                console.error('No se encontraron mediciones en ninguna columna (R, S, T, U)')
-                setErrorNumeroOperaciones(true)
-                window.scrollTo({top: 0, behavior: 'smooth'})
-
-            } catch (error) {
-                console.error('Error al procesar el archivo Excel:', error)
-                setErrorNumeroOperaciones(true)
-                window.scrollTo({top: 0, behavior: 'smooth'})
             }
-            setShowSpinner(false)
-        }
 
-        reader.onerror = (error) => {
-            console.error('Error al leer el archivo:', error)
-            setErrorNumeroOperaciones(true)
-            window.scrollTo({top: 0, behavior: 'smooth'})
-            setShowSpinner(false)
+            reader.readAsArrayBuffer(file)
         }
-
-        reader.readAsArrayBuffer(file)
+        setShowSpinner(false)
     }
 
-    const loadFileArchivo3 = (list) => {
+    const deleteDocElect = (e) => {
+        e.preventDefault()
+        setDocElec([])
+        setce1('')
+        setce2('')
+        setce3('')
+        setRelacionTransformacion('')
+        setResistenciaDevanados('')
+        setFactorPotencia('')
+    }
+
+    const deleteDocEnsayo = (e) => {
+        e.preventDefault()
+        setDocEnsayo([])
+        setColor('')
+        setTensionInterfacial('')
+        setNumeroAcidez('')
+        setRigidezDielectrica('')
+        setContenidoHumedad('')
+        setFactorPotenciaLiquida('')
+        setInhibidorOxidacion('')
+        setGradoPolimerizacion('')
+
+        setHidrogeno('')
+        setMetano('')
+        setMonoxidoCarbono('')
+        setEtileno('')
+        setEtano('')
+        setAcetileno('')
+        setDioxidoCarbono('')
+    }
+
+    const loadFileBaseDatos = (list) => {
         setShowSpinner(true)
-        setDocArchivo3((prevList) => [...prevList, ...list])
-
-        // Procesar Excel para extraer resistencia de contactos Y tiempo de cierre
+        setDocBaseDatos((prevList) => [...prevList, ...list])
         const file = list[0]
-        const reader = new FileReader()
+        if (file) {
+            const reader = new FileReader()
 
-        reader.onload = (e) => {
-            try {
+            reader.onload = (e) => {
                 const data = new Uint8Array(e.target.result)
-                const workbook = XLSX.read(data, { type: 'array' })
+                const workbook = XLSX.read(data, {type: 'array'})
 
-                // ========== EXTRACCIÓN DE RESISTENCIA DE CONTACTOS ==========
-                if (workbook.SheetNames.includes('Contact Resistance')) {
-                    const worksheet = workbook.Sheets['Contact Resistance']
-                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
+                // Leer la primera hoja del archivo
+                const firstSheetName = workbook.SheetNames[0]
+                const sheet = workbook.Sheets[firstSheetName]
+                const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
 
-                    if (fase === 'G') {
-                        // Para fase genérica, buscar el MENOR valor entre las tres fases
-                        console.log('Resistencia - Fase genérica: buscando menor valor entre fases A, B, C')
+                // Columna B (índice 1) = DATE, Columna F (índice 5) = AI603
+                const dateColIndex = 1
+                const valueColIndex = 5
 
-                        const valoresFases = []
-                        const fases = ['A', 'B', 'C']
+                // Agrupar valores por fecha y calcular promedios
+                const dataByDate = {}
 
-                        fases.forEach(f => {
-                            for (let i = 0; i < rawData.length; i++) {
-                                const row = rawData[i]
-                                const columnaC = row[2] ? row[2].toString().trim() : ''
-                                const columnaF = row[5]
+                jsonData.forEach((row, index) => {
+                    if (index === 0) return // Saltar encabezado
 
-                                if (columnaC === f && columnaF && columnaF !== '' && !isNaN(parseFloat(columnaF))) {
-                                    const valor = parseFloat(columnaF)
-                                    valoresFases.push(valor)
-                                }
-                            }
-                        })
+                    const dateValue = row[dateColIndex]
+                    const ai603Value = row[valueColIndex]
 
-                        if (valoresFases.length > 0) {
-                            const minValor = Math.min(...valoresFases)
-                            setResistenciaContactos(minValor)
-                            console.log('Resistencia de contactos extraída (menor entre todas las fases):', minValor, 'Ω')
+                    if (dateValue && ai603Value !== undefined && ai603Value !== null && !isNaN(ai603Value)) {
+                        // Convertir fecha de Excel a string YYYY-MM-DD
+                        let dateStr
+                        if (typeof dateValue === 'number') {
+                            // Fecha en formato numérico de Excel
+                            const excelDate = XLSX.SSF.parse_date_code(dateValue)
+                            dateStr = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`
+                        } else if (typeof dateValue === 'string') {
+                            dateStr = dateValue.split(' ')[0] // Tomar solo la parte de la fecha
                         } else {
-                            console.log('No se encontraron valores de resistencia para ninguna fase')
+                            return
                         }
 
-                    } else {
-                        // Para fase específica (A, B, o C)
-                        console.log(`Resistencia - Buscando valores para fase ${fase}`)
-
-                        for (let i = 0; i < rawData.length; i++) {
-                            const row = rawData[i]
-                            const columnaC = row[2] ? row[2].toString().trim() : ''
-                            const columnaF = row[5]
-
-                            if (columnaC === fase && columnaF && columnaF !== '' && !isNaN(parseFloat(columnaF))) {
-                                const valor = parseFloat(columnaF)
-                                setResistenciaContactos(valor)
-                                console.log(`Resistencia de contactos extraída (Fase ${fase}):`, valor, 'Ω')
-                                break
-                            }
+                        if (!dataByDate[dateStr]) {
+                            dataByDate[dateStr] = []
                         }
+                        dataByDate[dateStr].push(parseFloat(ai603Value))
                     }
-                } else {
-                    console.error('No se encontró la hoja "Contact Resistance" en el archivo Excel')
-                }
+                })
 
-                // ========== EXTRACCIÓN DE TIEMPO DE CIERRE ==========
-                if (workbook.SheetNames.includes('Tiempos C')) {
-                    const worksheetTiempos = workbook.Sheets['Tiempos C']
-                    const dataTiempos = XLSX.utils.sheet_to_json(worksheetTiempos, { header: 1, defval: '' })
+                // Calcular promedios por día
+                const averages = Object.entries(dataByDate).map(([date, values]) => ({
+                    date: date,
+                    promedio: values.reduce((sum, val) => sum + val, 0) / values.length
+                }))
 
-                    // Buscar la columna "Closing time" dinámicamente
-                    let closingTimeColIndex = -1
-                    for (let i = 0; i < Math.min(100, dataTiempos.length); i++) {
-                        const row = dataTiempos[i]
-                        for (let j = 0; j < row.length; j++) {
-                            const cell = row[j] ? row[j].toString() : ''
-                            if (cell.includes('Closing time')) {
-                                closingTimeColIndex = j
-                                console.log(`Encontrada columna "Closing time" en índice ${j}, fila ${i}`)
-                                break
-                            }
-                        }
-                        if (closingTimeColIndex !== -1) break
-                    }
+                // Ordenar por fecha y tomar los últimos 30 días
+                averages.sort((a, b) => new Date(a.date) - new Date(b.date))
+                const last30Days = averages.slice(-30)
 
-                    if (closingTimeColIndex !== -1) {
-                        // Mapeo de fases: A=R, B=S, C=T
-                        const faseMap = {
-                            'A': 'R',
-                            'B': 'S',
-                            'C': 'T'
-                        }
-
-                        if (fase === 'G') {
-                            // Para fase genérica, buscar el MAYOR valor entre las tres fases
-                            console.log('Tiempo de cierre - Fase genérica: buscando mayor valor entre fases R, S, T')
-
-                            const valoresFases = []
-                            const fasesABuscar = ['R', 'S', 'T']
-
-                            fasesABuscar.forEach(f => {
-                                for (let i = 0; i < dataTiempos.length; i++) {
-                                    const row = dataTiempos[i]
-                                    const columnaA = row[0] ? row[0].toString().trim() : ''
-                                    const valorTiempo = row[closingTimeColIndex]
-
-                                    if (columnaA.match(new RegExp(`FASE ${f}`, 'i')) &&
-                                        valorTiempo && valorTiempo !== '' && !isNaN(parseFloat(valorTiempo))) {
-                                        const valor = parseFloat(valorTiempo)
-                                        valoresFases.push(valor)
-                                    }
-                                }
-                            })
-
-                            if (valoresFases.length > 0) {
-                                const maxValor = Math.max(...valoresFases)
-                                const maxValorMs = maxValor * 1000 // Convertir a milisegundos
-                                setTiempoCierre(maxValorMs)
-                                console.log(`Tiempo de cierre extraído (mayor entre todas las fases): ${maxValor} s = ${maxValorMs} ms`)
-                            } else {
-                                console.log('No se encontraron valores de tiempo de cierre para ninguna fase')
-                            }
-
-                        } else {
-                            // Para fase específica (A, B, o C), buscar la fase correspondiente (R, S, o T)
-                            const faseABuscar = faseMap[fase] || fase
-                            console.log(`Tiempo de cierre - Buscando valores para fase ${fase} (FASE ${faseABuscar})`)
-
-                            for (let i = 0; i < dataTiempos.length; i++) {
-                                const row = dataTiempos[i]
-                                const columnaA = row[0] ? row[0].toString().trim() : ''
-                                const valorTiempo = row[closingTimeColIndex]
-
-                                if (columnaA.match(new RegExp(`FASE ${faseABuscar}`, 'i')) &&
-                                    valorTiempo && valorTiempo !== '' && !isNaN(parseFloat(valorTiempo))) {
-                                    const valor = parseFloat(valorTiempo)
-                                    const valorMs = valor * 1000 // Convertir a milisegundos
-                                    setTiempoCierre(valorMs)
-                                    console.log(`Tiempo de cierre extraído (Fase ${fase}): ${valor} s = ${valorMs} ms`)
-                                    break
-                                }
-                            }
-                        }
-                    } else {
-                        console.error('No se encontró la columna "Closing time" en la hoja "Tiempos C"')
-                    }
-                } else {
-                    console.error('No se encontró la hoja "Tiempos C" en el archivo Excel')
-                }
-
-            } catch (error) {
-                console.error('Error al procesar el archivo Excel:', error)
+                setChartData(last30Days)
             }
-            setShowSpinner(false)
+
+            reader.readAsArrayBuffer(file)
         }
+        setShowSpinner(false)
+    }
 
-        reader.onerror = (error) => {
-            console.error('Error al leer el archivo:', error)
-            setShowSpinner(false)
+    const deleteDocBaseDatos = (e) => {
+        e.preventDefault()
+        setDocBaseDatos([])
+        setChartData([])
+    }
+
+    const convertFileToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+
+            // Evento que se activa cuando la lectura se completa
+            reader.onload = () => {
+                const base64 = reader.result.split(',')[1]// Extraer solo la parte base64
+                resolve(base64)
+            }
+
+            // Manejo de errores
+            reader.onerror = (error) => {
+                reject(error)
+            }
+
+            // Leer el archivo como Data URL
+            reader.readAsDataURL(file)
+        })
+    }
+
+    // Función helper para formatear números con máximo de dígitos totales
+    const formatMaxDigits = (value, maxDigits) => {
+        const num = parseFloat(value)
+        if (isNaN(num)) return 1
+
+        // Convertir a string para contar dígitos
+        const strNum = Math.abs(num).toString()
+        const digits = strNum.replace('.', '').length
+
+        if (digits <= maxDigits) return num
+
+        // Calcular cuántos decimales mantener
+        const integerPart = Math.floor(Math.abs(num)).toString().length
+        const decimals = Math.max(0, maxDigits - integerPart)
+
+        return parseFloat(num.toFixed(decimals))
+    }
+
+    // Función helper para formatear números con máximo de decimales
+    const formatMaxDecimals = (value, maxDecimals) => {
+        const num = parseFloat(value)
+        if (isNaN(num)) return 1
+        return parseFloat(num.toFixed(maxDecimals))
+    }
+
+    // Función para calcular corriente de excitación
+    // Basado en la lógica anterior: retorna 5 si hay datos válidos
+    const calculateCorrienteExcitacion = (c1, c2, c3) => {
+        // Si al menos uno de los valores existe, retornar 5 (lógica original)
+        if (c1 || c2 || c3) {
+            return 5
         }
-
-        reader.readAsArrayBuffer(file)
+        // Si no hay datos, retornar 1 como fallback
+        return 1
     }
 
-    const deleteDocArchivo1 = (e) => {
-        e.preventDefault()
-        setDocArchivo1([])
-        setCorrienteFalla('')
-        setTiempoApertura('')
-        setFase('')
-        setFaseDetectada(false)
-        setErrorFase(false)
-    }
-
-    const deleteDocArchivo2 = (e) => {
-        e.preventDefault()
-        setDocArchivo2([])
-        setNumeroOperaciones('')
-        setErrorNumeroOperaciones(false)
-    }
-
-    const deleteDocArchivo3 = (e) => {
-        e.preventDefault()
-        setDocArchivo3([])
-        setResistenciaContactos('')
-        setTiempoCierre('')
-    }
-
-    const generarPronostico = async (event) => {
+    const createForecast = async (event) => {
         setShowSpinner(true)
         event.preventDefault()
-
-        if (!transformador || !tiempoApertura || !tiempoCierre || !numeroOperaciones ||
-            !corrienteFalla || !resistenciaContactos || !fechaMantenimiento) {
+        if (
+            !relacionTransformacion ||
+            !resistenciaDevanados ||
+            !ce1 ||
+            !ce2 ||
+            !ce3 ||
+            !factorPotencia ||
+            !inhibidorOxidacion ||
+            !gradoPolimerizacion ||
+            !rigidezDielectrica ||
+            !tensionInterfacial ||
+            !numeroAcidez ||
+            !contenidoHumedad ||
+            !color ||
+            !hidrogeno ||
+            !metano ||
+            !etano ||
+            !etileno ||
+            !acetileno ||
+            !dioxidoCarbono ||
+            !monoxidoCarbono ||
+            !fechaMantenimiento
+        ) {
             setShowAlert(true)
             setFormError(true)
             window.scrollTo({top: 0, behavior: 'smooth'})
@@ -781,57 +564,92 @@ export const NewPronosticoTransformador = () => {
         }
 
         try {
-            const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
 
-            const data = {
-                tipo_equipo: 'transformador',
-                transformador: parseInt(transformador),
-                tiempo_apertura: parseFloat(tiempoApertura),
-                tiempo_cierre: parseFloat(tiempoCierre),
-                numero_operaciones: parseInt(numeroOperaciones),
-                corriente_falla: parseFloat(corrienteFalla),
-                resistencia_contactos: parseFloat(resistenciaContactos),
-                fecha_mantenimiento: fechaMantenimiento
+            let haveFiles = false
+
+            let docs = []
+
+            if (docElec.length > 0) {
+                const name = docElec[0].name
+                haveFiles = true
+                docs.push({
+                    ext: name,
+                    base64: await convertFileToBase64(docElec[0])
+                })
             }
 
-            const response = await createPronostico(user.token, data)
+            if (docEnsayo.length > 0) {
+                const name = docEnsayo[0].name
+                haveFiles = true
+                docs.push({
+                    ext: name,
+                    base64: await convertFileToBase64(docEnsayo[0])
+                })
+            }
 
-            setTitle('Pronóstico Generado')
-            setSubTitle('Pronóstico ID: ' + response.data.idpronostico)
-            setMessage('El pronóstico se registró exitosamente en el sistema')
+            if (docBaseDatos.length > 0) {
+                const name = docBaseDatos[0].name
+                haveFiles = true
+                docs.push({
+                    ext: name,
+                    base64: await convertFileToBase64(docBaseDatos[0])
+                })
+            }
 
-            // Limpiar formulario inmediatamente después del éxito
-            limpiarFormulario()
+            const data = {
+                // Relación con transformador
+                transformador: transformador,
+                fecha_ultimo_mantenimiento: fechaMantenimiento,
+                tiene_archivos: haveFiles,
+
+                // Datos funcionales
+                relacion_transformacion: formatMaxDigits(relacionTransformacion, 4),
+                resistencia_devanados: formatMaxDigits(resistenciaDevanados, 4),
+                corriente_excitacion: calculateCorrienteExcitacion(ce1, ce2, ce3),
+
+                // Gases disueltos
+                hidrogeno: hidrogeno,
+                metano: metano,
+                etano: etano,
+                etileno: etileno,
+                acetileno: acetileno,
+                dioxido_carbono: dioxidoCarbono,
+                monoxido_carbono: monoxidoCarbono,
+
+                // Datos dieléctricos
+                factor_potencia: formatMaxDigits(factorPotencia, 4),
+                rigidez_dielectrica: rigidezDielectrica,
+                tension_interfacial: tensionInterfacial,
+                numero_acidez: formatMaxDecimals(numeroAcidez, 2),
+                contenido_humedad: contenidoHumedad,
+                color: color,
+                factor_potencia_liquido: parseFloat(factorPotenciaLiquida).toFixed(2),
+                inhibidor_oxidacion: inhibidorOxidacion,
+                grado_polimerizacion: gradoPolimerizacion
+            }
+            const respond = await createPronosticoTransformador(userData.token, data)
+            setIsSuccess(true)
+            setTitle('Pronóstico Realizado')
+            setSubTitle('Datos Calculados')
+            setMessage(
+                'HI Total: ' + respond.resumen.hi_total + '%\n' +
+                'Condición: ' + respond.resumen.condicion + '\n' +
+                'RM: ' + respond.resumen.rm_actual + '\n' +
+                'Fecha óptima: ' + respond.resumen.fecha_optima_sugerida + '\n' +
+                'Recomendación: ' + respond.resumen.recomendacion
+            )
         } catch (e) {
+            setIsSuccess(false)
             setTitle('Error')
             setSubTitle('')
             if (e.response?.data?.error?.name === 'TokenExpiredError') {
                 logout.logOut()
             }
-            setMessage('No puedes realizar esta acción.')
+            const errorMsg = e.response?.data?.message || e.response?.data?.error || 'No puedes realizar esta acción.'
+            setMessage(errorMsg)
         }
         setShow(true)
         setShowSpinner(false)
-    }
-
-    const limpiarFormulario = () => {
-        setTransformador('')
-        setTiempoApertura('')
-        setTiempoCierre('')
-        setNumeroOperaciones('')
-        setCorrienteFalla('')
-        setResistenciaContactos('')
-        setFechaMantenimiento('')
-        setFase('')
-        setFaseDetectada(false)
-        setDocArchivo1([])
-        setDocArchivo2([])
-        setDocArchivo3([])
-        setErrorFase(false)
-        setErrorNumeroOperaciones(false)
-        setFormError(false)
-        setShowAlert(false)
-        window.scrollTo({top: 0, behavior: 'smooth'})
     }
 
     const handleConfirmSubmit = (text) => {
@@ -840,7 +658,12 @@ export const NewPronosticoTransformador = () => {
         }
 
         if (text === 'Acept') {
-            setShow(false)
+            if (isSuccess) {
+                window.location.reload()
+                window.scrollTo({top: 0, behavior: 'smooth'})
+            } else {
+                setShow(false)
+            }
         }
     }
 
@@ -849,14 +672,14 @@ export const NewPronosticoTransformador = () => {
         setShow(true)
         setTitle('Cancelar Pronóstico')
         setSubTitle('')
-        setMessage('¿Estás seguro de que deseas cancelar la generación de pronóstico?')
+        setMessage('¿Estás seguro de que deseas cancelar el registro de pronóstico?')
     }
 
     return (
         <DivForm className='newReportContent'>
             <Col xs={12} className={'formBackground'}>
                 <Container>
-                    <StyledForm onSubmit={generarPronostico}>
+                    <StyledForm onSubmit={createForecast}>
                         {
                             showAlert ? (
                                     <Alert
@@ -872,129 +695,91 @@ export const NewPronosticoTransformador = () => {
                                 ) :
                                 (<></>)
                         }
-                        {
-                            errorFase ? (
-                                    <Alert
-                                        variant="danger"
-                                        onClose={() => setErrorFase(false)}
-                                        dismissible
-                                        className='alert-center'
-                                    >
-                                        <p>
-                                            No se logró obtener la fase del archivo CSV. Por favor, verifique que el archivo contenga datos válidos con información de fase (phs A, B o C).
-                                        </p>
-                                    </Alert>
-                                ) :
-                                (<></>)
-                        }
-                        {
-                            errorNumeroOperaciones ? (
-                                    <Alert
-                                        variant="danger"
-                                        onClose={() => setErrorNumeroOperaciones(false)}
-                                        dismissible
-                                        className='alert-center'
-                                    >
-                                        <p>
-                                            No se encontró medición del número de operaciones para el dispositivo seleccionado en el archivo Excel. Por favor, verifique que el archivo contenga la hoja "BASE" y que existan datos del dispositivo en las columnas de operaciones.
-                                        </p>
-                                    </Alert>
-                                ) :
-                                (<></>)
-                        }
-                        <Row xs={12}>
-                            <Col xs={12} md={4}>
-                                <Col xs={12}>
-                                    <RequiredLabel>Archivo Corriente falla y tiempo de apertura</RequiredLabel>
+                        {/* Sección: Archivos de Pruebas */}
+                        <SectionCard>
+                            <SectionTitle>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2ZM16 18H8V16H16V18ZM16 14H8V12H16V14ZM13 9V3.5L18.5 9H13Z" fill="#E40613"/>
+                                </svg>
+                                Archivos de Pruebas Eléctricas
+                            </SectionTitle>
+                            <Row>
+                                <Col xs={12} md={6}>
+                                    <RequiredLabel>Medidas Eléctricas (.xlsx)</RequiredLabel>
+                                    {
+                                        docElec.length > 0 ? (
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px'}}>
+                                                <TitleReport style={{margin: 0}}>Archivo cargado</TitleReport>
+                                                <SButton onClick={deleteDocElect} style={{width: 'auto', padding: '5px 10px', margin: 0}}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z" fill="#E40613"/>
+                                                    </svg>
+                                                </SButton>
+                                            </div>
+                                        ) : (
+                                            <DropZone id={'fileElect'} loadFile={loadFileElect} type={'.xlsx'}/>
+                                        )
+                                    }
                                 </Col>
-                                {
-                                    docArchivo1.length > 0 ? (
-                                        <>
-                                            <TitleReport>Ya se Cargó el Archivo</TitleReport>
-                                            <SButton onClick={deleteDocArchivo1}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                     viewBox="0 0 24 24" fill="none">
-                                                    <path
-                                                        d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z"
-                                                        fill="#E40613"/>
-                                                </svg>
-                                            </SButton>
-                                        </>
-                                    ) : (
-                                        <Col xs={12}>
-                                            <DropZone id={'fileArchivo1'} loadFile={loadFileArchivo1} type={'.xlsx,.csv'}/>
-                                        </Col>
-                                    )
-                                }
-                            </Col>
-                            <Col xs={12} md={4} style={{opacity: archivos2y3Habilitados ? 1 : 0.5, pointerEvents: archivos2y3Habilitados ? 'auto' : 'none'}}>
-                                <Col xs={12}>
-                                    <RequiredLabel>Archivo Numero de operaciones</RequiredLabel>
+                                <Col xs={12} md={6}>
+                                    <RequiredLabel>Medidas de Ensayo (.xlsm)</RequiredLabel>
+                                    {
+                                        docEnsayo.length > 0 ? (
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px'}}>
+                                                <TitleReport style={{margin: 0}}>Archivo cargado</TitleReport>
+                                                <SButton onClick={deleteDocEnsayo} style={{width: 'auto', padding: '5px 10px', margin: 0}}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z" fill="#E40613"/>
+                                                    </svg>
+                                                </SButton>
+                                            </div>
+                                        ) : (
+                                            <DropZone id={'fileEnsayo'} loadFile={loadFileEnsayo} type={'.xlsm'}/>
+                                        )
+                                    }
                                 </Col>
-                                {
-                                    docArchivo2.length > 0 ? (
-                                        <>
-                                            <TitleReport>Ya se Cargó el Archivo</TitleReport>
-                                            <SButton onClick={deleteDocArchivo2}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                     viewBox="0 0 24 24" fill="none">
-                                                    <path
-                                                        d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z"
-                                                        fill="#E40613"/>
-                                                </svg>
-                                            </SButton>
-                                        </>
-                                    ) : (
-                                        <Col xs={12}>
-                                            <DropZone id={'fileArchivo2'} loadFile={loadFileArchivo2} type={'.xlsx,.csv'} disabled={!archivos2y3Habilitados}/>
-                                        </Col>
-                                    )
-                                }
-                                {!archivos2y3Habilitados && (
-                                    <small style={{color: '#6c757d', fontSize: '0.85rem', marginTop: '5px', display: 'block'}}>
-                                        {!faseDetectada && !transformador
-                                            ? 'Debe cargar el archivo 1 con fase válida y seleccionar un transformador'
-                                            : !faseDetectada
-                                                ? 'Debe cargar el archivo 1 con una fase válida'
-                                                : 'Debe seleccionar un transformador'}
-                                    </small>
-                                )}
-                            </Col>
-                            <Col xs={12} md={4} style={{opacity: archivos2y3Habilitados ? 1 : 0.5, pointerEvents: archivos2y3Habilitados ? 'auto' : 'none'}}>
-                                <Col xs={12}>
-                                    <RequiredLabel>Archivo Resistencia de contactos</RequiredLabel>
+                            </Row>
+                        </SectionCard>
+
+                        {/* Sección: Base de Datos y Análisis */}
+                        <SectionCard>
+                            <SectionTitle>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" fill="#E40613"/>
+                                </svg>
+                                Base de Datos y Análisis Gráfico
+                            </SectionTitle>
+                            <Row>
+                                <Col xs={12} md={6}>
+                                    <LabelForm>Archivo Base de Datos (.xlsx)</LabelForm>
+                                    {
+                                        docBaseDatos.length > 0 ? (
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px'}}>
+                                                <TitleReport style={{margin: 0}}>Archivo cargado</TitleReport>
+                                                <SButton onClick={deleteDocBaseDatos} style={{width: 'auto', padding: '5px 10px', margin: 0}}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z" fill="#E40613"/>
+                                                    </svg>
+                                                </SButton>
+                                            </div>
+                                        ) : (
+                                            <DropZone id={'fileBaseDatos'} loadFile={loadFileBaseDatos} type={'.xlsx,.xls'}/>
+                                        )
+                                    }
                                 </Col>
-                                {
-                                    docArchivo3.length > 0 ? (
-                                        <>
-                                            <TitleReport>Ya se Cargó el Archivo</TitleReport>
-                                            <SButton onClick={deleteDocArchivo3}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                     viewBox="0 0 24 24" fill="none">
-                                                    <path
-                                                        d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z"
-                                                        fill="#E40613"/>
-                                                </svg>
-                                            </SButton>
-                                        </>
-                                    ) : (
-                                        <Col xs={12}>
-                                            <DropZone id={'fileArchivo3'} loadFile={loadFileArchivo3} type={'.xlsx,.csv'} disabled={!archivos2y3Habilitados}/>
-                                        </Col>
-                                    )
-                                }
-                                {!archivos2y3Habilitados && (
-                                    <small style={{color: '#6c757d', fontSize: '0.85rem', marginTop: '5px', display: 'block'}}>
-                                        {!faseDetectada && !transformador
-                                            ? 'Debe cargar el archivo 1 con fase válida y seleccionar un transformador'
-                                            : !faseDetectada
-                                                ? 'Debe cargar el archivo 1 con una fase válida'
-                                                : 'Debe seleccionar un transformador'}
-                                    </small>
-                                )}
-                            </Col>
-                        </Row>
-                        <hr></hr>
+                            </Row>
+                            {chartData.length > 0 && (
+                                <ChartContainer>
+                                    <LabelForm style={{marginBottom: '15px', fontSize: '1rem'}}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginRight: '8px'}}>
+                                            <path d="M3.5 18.49L9.5 12.48L13.5 16.48L22 6.92L20.59 5.51L13.5 13.48L9.5 9.48L2 16.99L3.5 18.49Z" fill="#99ABB4"/>
+                                        </svg>
+                                        Promedio Diario AI603 - Últimos 30 días
+                                    </LabelForm>
+                                    <div ref={chartRef} style={{minWidth: '700px'}}></div>
+                                </ChartContainer>
+                            )}
+                        </SectionCard>
                         <Row xs={12}>
                             <Col xs={12} md={6} className={`${!transformador && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
@@ -1023,84 +808,321 @@ export const NewPronosticoTransformador = () => {
                             </Col>
                         </Row>
                         <Row xs={12}>
-                            <Col xs={12} md={6} className={`${!tiempoApertura && formError ? 'errorForm' : ''}`}>
+                            <Col xs={6} md={3} className={`${!relacionTransformacion && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Ingrese el tiempo de apertura (ms)</RequiredLabel>
+                                    <RequiredLabel>Relación de Transformación</RequiredLabel>
                                 </Col>
                                 <Col xs={12}>
                                     <InputForm
                                         type='number'
-                                        step='0.01'
-                                        value={tiempoApertura}
-                                        name='tiempoApertura'
-                                        placeholder='Tiempo en milisegundos'
-                                        onChange={({target}) => setTiempoApertura(target.value)}
+                                        value={relacionTransformacion}
+                                        name='relacionTransformacion'
+                                        placeholder='Porcentaje'
+                                        onChange={({target}) => setRelacionTransformacion(target.value)}
                                     />
                                 </Col>
                             </Col>
-                            <Col xs={12} md={6} className={`${!tiempoCierre && formError ? 'errorForm' : ''}`}>
+                            <Col xs={6} md={3} className={`${!resistenciaDevanados && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Ingrese el tiempo de cierre (ms)</RequiredLabel>
+                                    <RequiredLabel>Resistencia de Devanados</RequiredLabel>
                                 </Col>
                                 <Col xs={12}>
                                     <InputForm
                                         type='number'
-                                        step='0.01'
-                                        value={tiempoCierre}
-                                        name='tiempoCierre'
-                                        placeholder='Tiempo en milisegundos'
-                                        onChange={({target}) => setTiempoCierre(target.value)}
+                                        value={resistenciaDevanados}
+                                        name='resistenciaDevanados'
+                                        placeholder='Porcentaje'
+                                        onChange={({target}) => setResistenciaDevanados(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={12} md={6} className={`${(!ce1 || !ce2 || !ce3) && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Corriente de Excitación</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <Row xs={12}>
+                                        <Col xs={4}>
+                                            <InputForm
+                                                type='number'
+                                                value={ce1}
+                                                name='ce1'
+                                                placeholder='Corriente 1'
+                                                onChange={({target}) => setce1(target.value)}
+                                            />
+                                        </Col>
+                                        <Col xs={4}>
+                                            <InputForm
+                                                type='number'
+                                                value={ce2}
+                                                name='ce2'
+                                                placeholder='Corriente 2'
+                                                onChange={({target}) => setce2(target.value)}
+                                            />
+                                        </Col>
+                                        <Col xs={4}>
+                                            <InputForm
+                                                type='number'
+                                                value={ce3}
+                                                name='ce3'
+                                                placeholder='Corriente 3'
+                                                onChange={({target}) => setce3(target.value)}
+                                            />
+                                        </Col>
+                                    </Row>
+                                </Col>
+                            </Col>
+                        </Row>
+                        <Row xs={12}>
+                            <Col xs={6} md={3} className={`${!factorPotencia && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Factor de Potencia</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={factorPotencia}
+                                        name='factorPotencia'
+                                        placeholder='Porcentaje'
+                                        onChange={({target}) => setFactorPotencia(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!inhibidorOxidacion && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Inhibidor de Oxidación</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={inhibidorOxidacion}
+                                        name='inhibidorOxidacion'
+                                        placeholder='Porcentaje'
+                                        onChange={({target}) => setInhibidorOxidacion(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!gradoPolimerizacion && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Grado Polimerización (DP)</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={gradoPolimerizacion}
+                                        name='gradoPolimerizacion'
+                                        placeholder='Ej: 700'
+                                        onChange={({target}) => setGradoPolimerizacion(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                        </Row>
+
+                        <br></br>
+                        <Row xs={12}>
+                            <Col xs={12}>
+                                <LabelForm>Análisis de aceites físico químicos -- Pruebas
+                                    Dieléctricas</LabelForm>
+                            </Col>
+                        </Row>
+                        <Row xs={12}>
+                            <Col xs={6} md={3} className={`${!rigidezDielectrica && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Rigidez Dieléctrica (KV)</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={rigidezDielectrica}
+                                        name='rigidezDielectrica'
+                                        placeholder='Número'
+                                        onChange={({target}) => setRigidezDielectrica(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!tensionInterfacial && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Tensión Interfacial (N/m)</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={tensionInterfacial}
+                                        name='tensionInterfacial'
+                                        placeholder='Número'
+                                        onChange={({target}) => setTensionInterfacial(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!numeroAcidez && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Número de Acidez</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={numeroAcidez}
+                                        name='numeroAcidez'
+                                        placeholder='Número'
+                                        onChange={({target}) => setNumeroAcidez(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!contenidoHumedad && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Contenido de Humedad</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={contenidoHumedad}
+                                        name='contenidoHumedad'
+                                        placeholder='Número'
+                                        onChange={({target}) => setContenidoHumedad(target.value)}
                                     />
                                 </Col>
                             </Col>
                         </Row>
                         <Row xs={12}>
-                            <Col xs={12} md={6} className={`${!numeroOperaciones && formError ? 'errorForm' : ''}`}>
+                            <Col xs={6} md={3} className={`${!color && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Ingrese el número de operaciones</RequiredLabel>
+                                    <RequiredLabel>Color</RequiredLabel>
                                 </Col>
                                 <Col xs={12}>
                                     <InputForm
                                         type='number'
-                                        value={numeroOperaciones}
-                                        name='numeroOperaciones'
-                                        placeholder='Número de operaciones'
-                                        onChange={({target}) => setNumeroOperaciones(target.value)}
+                                        value={color}
+                                        name='color'
+                                        placeholder='Número'
+                                        onChange={({target}) => setColor(target.value)}
                                     />
                                 </Col>
                             </Col>
-                            <Col xs={12} md={6} className={`${!corrienteFalla && formError ? 'errorForm' : ''}`}>
+                            <Col xs={12} md={6} className={`${!factorPotenciaLiquida && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Ingrese la corriente de falla (A)</RequiredLabel>
+                                    <RequiredLabel>Factor de potencia liquido 25 %</RequiredLabel>
                                 </Col>
                                 <Col xs={12}>
                                     <InputForm
                                         type='number'
-                                        step='0.01'
-                                        value={corrienteFalla}
-                                        name='corrienteFalla'
-                                        placeholder='Corriente en A'
-                                        onChange={({target}) => setCorrienteFalla(target.value)}
+                                        value={factorPotenciaLiquida}
+                                        name='factorPotenciaLiquida'
+                                        placeholder='Número'
+                                        onChange={({target}) => setFactorPotenciaLiquida(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                        </Row>
+
+                        <br></br>
+                        <Row xs={12}>
+                            <Col xs={12}>
+                                <LabelForm>Análisis de Gases Disueltos.</LabelForm>
+                            </Col>
+                        </Row>
+                        <Row xs={12}>
+                            <Col xs={6} md={3} className={`${!hidrogeno && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Hidrogeno</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={hidrogeno}
+                                        name='hidrogeno'
+                                        placeholder='Número'
+                                        onChange={({target}) => setHidrogeno(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!metano && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Metano</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={metano}
+                                        name='metano'
+                                        placeholder='Número'
+                                        onChange={({target}) => setMetano(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!etano && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Etano</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={etano}
+                                        name='etano'
+                                        placeholder='Número'
+                                        onChange={({target}) => setEtano(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!etileno && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Etileno</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={etileno}
+                                        name='etileno'
+                                        placeholder='Número'
+                                        onChange={({target}) => setEtileno(target.value)}
                                     />
                                 </Col>
                             </Col>
                         </Row>
                         <Row xs={12}>
-                            <Col xs={12} md={6} className={`${!resistenciaContactos && formError ? 'errorForm' : ''}`}>
+                            <Col xs={6} md={3} className={`${!acetileno && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Ingrese la resistencia de contactos (Ω)</RequiredLabel>
+                                    <RequiredLabel>Acetileno</RequiredLabel>
                                 </Col>
                                 <Col xs={12}>
                                     <InputForm
                                         type='number'
-                                        step='0.01'
-                                        value={resistenciaContactos}
-                                        name='resistenciaContactos'
-                                        placeholder='Resistencia en Ω'
-                                        onChange={({target}) => setResistenciaContactos(target.value)}
+                                        value={acetileno}
+                                        name='acetileno'
+                                        placeholder='Número'
+                                        onChange={({target}) => setAcetileno(target.value)}
                                     />
                                 </Col>
                             </Col>
+                            <Col xs={6} md={3} className={`${!dioxidoCarbono && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Dióxido de Carbono</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={dioxidoCarbono}
+                                        name='dioxidoCarbono'
+                                        placeholder='Número'
+                                        onChange={({target}) => setDioxidoCarbono(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={6} md={3} className={`${!monoxidoCarbono && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Monóxido de Carbono</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={monoxidoCarbono}
+                                        name='monoxidoCarbono'
+                                        placeholder='Número'
+                                        onChange={({target}) => setMonoxidoCarbono(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                        </Row>
+                        <Row xs={12}>
                             <Col xs={12} md={6} className={`${!fechaMantenimiento && formError ? 'errorForm' : ''}`}>
                                 <Col xs={12}>
                                     <RequiredLabel>Ingrese la fecha del último mantenimiento (formato YYYY-MM-DD)</RequiredLabel>
@@ -1124,7 +1146,7 @@ export const NewPronosticoTransformador = () => {
                                 <SButton onClick={showCancelModal}>Cancelar</SButton>
                             </Col>
                             <Col xs={12} lg={3}>
-                                <PButton>Generar Pronóstico</PButton>
+                                <PButton disabled={!transformador}>Generar Pronóstico</PButton>
                             </Col>
                             <Col xs={0} lg={3}>
                             </Col>
