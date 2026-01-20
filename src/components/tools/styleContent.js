@@ -487,3 +487,35 @@ export const ModalFormProvider = styled(Modal) `
      }
   }
 `
+
+export const SectionCard = styled.div `
+    background: #F8F9FA;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #E9ECEF;
+`
+
+export const SectionTitle = styled.h5 `
+    color: #E40613;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #FFE1E1;
+    display: flex;
+    align-items: center;
+
+    svg {
+        margin-right: 10px;
+    }
+`
+
+export const ChartContainer = styled.div `
+    background: #FFFFFF;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 15px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+`
