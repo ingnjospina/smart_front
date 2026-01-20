@@ -177,26 +177,26 @@ export const NewTransformerMeasurement = () => {
                             }
                         })
 
-                        // Obtener el valor máximo para cada fase, o 1 por defecto
+                        // Obtener el valor máximo para cada fase
                         if (valoresPorFase.A.length > 0) {
                             const maxA = Math.max(...valoresPorFase.A)
                             setce1(maxA)
                         } else {
-                            setce1(1)
+                            setce1('')
                         }
 
                         if (valoresPorFase.B.length > 0) {
                             const maxB = Math.max(...valoresPorFase.B)
                             setce2(maxB)
                         } else {
-                            setce2(1)
+                            setce2('')
                         }
 
                         if (valoresPorFase.C.length > 0) {
                             const maxC = Math.max(...valoresPorFase.C)
                             setce3(maxC)
                         } else {
-                            setce3(1)
+                            setce3('')
                         }
                     }
 
@@ -216,12 +216,12 @@ export const NewTransformerMeasurement = () => {
                             .map((row) => row[columnJIndex])
                             .filter((value) => value !== undefined && value !== null && value !== '' && !isNaN(value) && typeof value === 'number')
 
-                        // Obtener el valor más alto, o 1 por defecto
+                        // Obtener el valor más alto
                         if (columnJData.length > 0) {
                             const maxValue = Math.max(...columnJData)
                             setRelacionTransformacion(maxValue)
                         } else {
-                            setRelacionTransformacion(1)
+                            setRelacionTransformacion('')
                         }
                     }
 
@@ -240,12 +240,12 @@ export const NewTransformerMeasurement = () => {
                             .map((row) => row[columnGIndex])
                             .filter((value) => value !== undefined && value !== null && value !== '' && !isNaN(value) && typeof value === 'number')
 
-                        // Obtener el valor más alto, o 1 por defecto
+                        // Obtener el valor más alto
                         if (columnGData.length > 0) {
                             const maxValue = Math.max(...columnGData)
                             setResistenciaDevanados(maxValue)
                         } else {
-                            setResistenciaDevanados(1)
+                            setResistenciaDevanados('')
                         }
                     }
 
@@ -263,12 +263,12 @@ export const NewTransformerMeasurement = () => {
                             }
                         })
 
-                        // Obtener el valor más alto, o 1 por defecto
+                        // Obtener el valor más alto
                         if (valores.length > 0) {
                             const maxValue = Math.max(...valores)
                             setFactorPotencia(maxValue)
                         } else {
-                            setFactorPotencia(1)
+                            setFactorPotencia('')
                         }
                     }
                 })
@@ -296,24 +296,24 @@ export const NewTransformerMeasurement = () => {
                     if (sheetName === 'Datos') {
                         const sheet = workbook.Sheets[sheetName]
 
-                        // Leer valores de análisis físico-químico con validación de existencia, o 1 por defecto
-                        setColor(sheet['B2'] ? sheet['B2'].v : 1)
-                        setTensionInterfacial(sheet['B3'] ? sheet['B3'].v : 1)
-                        setNumeroAcidez(sheet['B4'] ? sheet['B4'].v : 1)
-                        setRigidezDielectrica(sheet['B5'] ? sheet['B5'].v : 1)
-                        setContenidoHumedad(sheet['B6'] ? sheet['B6'].v : 1)
-                        setFactorPotenciaLiquida(sheet['B8'] ? sheet['B8'].v : 1)
-                        setInhibidorOxidacion(sheet['B13'] ? sheet['B13'].v : 1)
-                        setCompuestoFuranico(sheet['H8'] ? sheet['H8'].v : 1)
+                        // Leer valores de análisis físico-químico con validación de existencia
+                        setColor(sheet['B2'] ? sheet['B2'].v : '')
+                        setTensionInterfacial(sheet['B3'] ? sheet['B3'].v : '')
+                        setNumeroAcidez(sheet['B4'] ? sheet['B4'].v : '')
+                        setRigidezDielectrica(sheet['B5'] ? sheet['B5'].v : '')
+                        setContenidoHumedad(sheet['B6'] ? sheet['B6'].v : '')
+                        setFactorPotenciaLiquida(sheet['B8'] ? sheet['B8'].v : '')
+                        setInhibidorOxidacion(sheet['B13'] ? sheet['B13'].v : '')
+                        setCompuestoFuranico(sheet['H8'] ? sheet['H8'].v : '')
 
-                        // Leer valores de análisis de gases disueltos, o 1 por defecto
-                        setHidrogeno(sheet['E2'] ? sheet['E2'].v : 1)
-                        setMetano(sheet['E3'] ? sheet['E3'].v : 1)
-                        setMonoxidoCarbono(sheet['E4'] ? sheet['E4'].v : 1)
-                        setEtileno(sheet['E5'] ? sheet['E5'].v : 1)
-                        setEtano(sheet['E6'] ? sheet['E6'].v : 1)
-                        setAcetileno(sheet['E7'] ? sheet['E7'].v : 1)
-                        setDioxidoCarbono(sheet['E13'] ? sheet['E13'].v : 1)
+                        // Leer valores de análisis de gases disueltos
+                        setHidrogeno(sheet['E2'] ? sheet['E2'].v : '')
+                        setMetano(sheet['E3'] ? sheet['E3'].v : '')
+                        setMonoxidoCarbono(sheet['E4'] ? sheet['E4'].v : '')
+                        setEtileno(sheet['E5'] ? sheet['E5'].v : '')
+                        setEtano(sheet['E6'] ? sheet['E6'].v : '')
+                        setAcetileno(sheet['E7'] ? sheet['E7'].v : '')
+                        setDioxidoCarbono(sheet['E13'] ? sheet['E13'].v : '')
                     }
                 })
             }
