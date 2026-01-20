@@ -13,7 +13,7 @@ import {
     StyledTD,
     StyledTH
 } from '../tools/styleContent'
-import {getPronosticos} from '../../services/pronostico.services'
+import {getPronosticosTransformadores} from '../../services/pronostico.services'
 import {getTransformadores} from '../../services/transformer.services'
 import {Spinner} from '../tools/spinner'
 import {UseLogout} from '../../hooks/useLogout'
@@ -42,11 +42,7 @@ export const PronosticosTransformadoresTable = () => {
                 setShowSpinner(true)
                 const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
 
-                // Filtrar solo transformadores
-                const params = new URLSearchParams()
-                params.append('tipo_equipo', 'transformador')
-
-                const pronosticosResponse = await getPronosticos(user.token, params.toString())
+                const pronosticosResponse = await getPronosticosTransformadores(user.token)
                 const transformadoresResponse = await getTransformadores(user.token)
 
                 setPronosticos(pronosticosResponse)
@@ -73,14 +69,13 @@ export const PronosticosTransformadoresTable = () => {
 
             // Construcción dinámica de los parámetros de la URL
             let params = new URLSearchParams()
-            params.append('tipo_equipo', 'transformador')
 
             if (idTransformador) params.append('idTransformador', idTransformador)
             if (fechaDesde) params.append('fecha_desde', fechaDesde)
             if (fechaHasta) params.append('fecha_hasta', fechaHasta)
 
             // Llamada al endpoint con los filtros aplicados
-            const pronosticosResponse = await getPronosticos(user.token, params.toString())
+            const pronosticosResponse = await getPronosticosTransformadores(user.token, params.toString())
 
             // Actualizar estado con los datos filtrados desde la API
             setPronosticos(pronosticosResponse)
@@ -100,10 +95,8 @@ export const PronosticosTransformadoresTable = () => {
         try {
             const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
 
-            // Llamar al endpoint sin filtros (solo tipo_equipo)
-            const params = new URLSearchParams()
-            params.append('tipo_equipo', 'transformador')
-            const pronosticosResponse = await getPronosticos(user.token, params.toString())
+            // Llamar al endpoint sin filtros
+            const pronosticosResponse = await getPronosticosTransformadores(user.token)
 
             // Restablecer los estados a vacío
             setIdTransformador('')
@@ -128,23 +121,24 @@ export const PronosticosTransformadoresTable = () => {
         }
 
         // Crear encabezados del CSV
-        const headers = ['ID', 'Transformador', 'Tiempo Apertura (ms)', 'Tiempo Cierre (ms)', 'Núm. Operaciones',
-                        'Corriente Falla (A)', 'Resistencia Contactos (Ω)', 'Fecha Mantenimiento',
-                        'Prob. Mantenimiento (%)', 'Fecha Programada', 'Fecha Óptima Sugerida', 'Fecha Creación']
+        const headers = ['ID', 'Transformador', 'HI Total', 'HI Funcional', 'HI Dieléctrico',
+                        'RM Actual', 'Condición', 'Color Alerta', 'Fecha Últ. Mant.',
+                        'Fecha Programada', 'Fecha Óptima Sugerida', 'Recomendación', 'Fecha Creación']
 
         // Crear filas con los datos filtrados
         const rows = pronosticos.map(item => [
-            item.pronostico.idpronostico,
-            item.equipo ? item.equipo.nombre : 'N/A',
-            item.pronostico.tiempo_apertura,
-            item.pronostico.tiempo_cierre,
-            item.pronostico.numero_operaciones,
-            item.pronostico.corriente_falla,
-            item.pronostico.resistencia_contactos,
-            item.pronostico.fecha_mantenimiento,
-            item.pronostico.probabilidad_mantenimiento || 'N/A',
+            item.pronostico.idpronostico_transformador,
+            item.transformador ? item.transformador.nombre : 'N/A',
+            item.pronostico.hi_total || 'N/A',
+            item.pronostico.hi_funcional || 'N/A',
+            item.pronostico.hi_dielectrico || 'N/A',
+            item.pronostico.rm_actual || 'N/A',
+            item.pronostico.condicion_hi || 'N/A',
+            item.pronostico.color_alerta || 'N/A',
+            item.pronostico.fecha_ultimo_mantenimiento || 'N/A',
             item.pronostico.fecha_programada || 'N/A',
             item.pronostico.fecha_optima_sugerida || 'N/A',
+            item.pronostico.recomendacion || 'N/A',
             item.pronostico.fecha_creacion
         ])
 
@@ -227,25 +221,41 @@ export const PronosticosTransformadoresTable = () => {
                         <tr>
                             <StyledTH>ID</StyledTH>
                             <StyledTH>Transformador</StyledTH>
-                            <StyledTH>Fecha Mant.</StyledTH>
-                            <StyledTH>Prob. Mant. (%)</StyledTH>
-                            <StyledTH>Fecha Programada</StyledTH>
+                            <StyledTH>HI Total</StyledTH>
+                            <StyledTH>Condición</StyledTH>
+                            <StyledTH>RM Actual</StyledTH>
+                            <StyledTH>Alerta</StyledTH>
                             <StyledTH>Fecha Óptima</StyledTH>
                             <StyledTH>Fecha Creación</StyledTH>
                         </tr>
                         </thead>
                         <tbody>
                         {pronosticos.length ? pronosticos.map((item) => (
-                            <tr key={item.pronostico.idpronostico}>
-                                <StyledTD>{item.pronostico.idpronostico}</StyledTD>
-                                <StyledTD>{item.equipo ? item.equipo.nombre : 'N/A'}</StyledTD>
-                                <StyledTD>{item.pronostico.fecha_mantenimiento}</StyledTD>
-                                <StyledTD>{item.pronostico.probabilidad_mantenimiento || 'N/A'}</StyledTD>
-                                <StyledTD>{item.pronostico.fecha_programada || 'N/A'}</StyledTD>
+                            <tr key={item.pronostico.idpronostico_transformador}>
+                                <StyledTD>{item.pronostico.idpronostico_transformador}</StyledTD>
+                                <StyledTD>{item.transformador ? item.transformador.nombre : 'N/A'}</StyledTD>
+                                <StyledTD>{item.pronostico.hi_total != null ? Number(item.pronostico.hi_total).toFixed(2) : 'N/A'}</StyledTD>
+                                <StyledTD>{item.pronostico.condicion_hi || 'N/A'}</StyledTD>
+                                <StyledTD>{item.pronostico.rm_actual != null ? Number(item.pronostico.rm_actual).toFixed(4) : 'N/A'}</StyledTD>
+                                <StyledTD>
+                                    <span style={{
+                                        display: 'inline-block',
+                                        width: '12px',
+                                        height: '12px',
+                                        borderRadius: '50%',
+                                        backgroundColor: item.pronostico.color_alerta === 'verde' ? '#28a745' :
+                                                        item.pronostico.color_alerta === 'amarillo' ? '#ffc107' :
+                                                        item.pronostico.color_alerta === 'naranja' ? '#fd7e14' :
+                                                        item.pronostico.color_alerta === 'rojo' ? '#dc3545' :
+                                                        item.pronostico.color_alerta === 'azul' ? '#007bff' : '#6c757d',
+                                        marginRight: '5px'
+                                    }}></span>
+                                    {item.pronostico.color_alerta || 'N/A'}
+                                </StyledTD>
                                 <StyledTD>{item.pronostico.fecha_optima_sugerida || 'N/A'}</StyledTD>
                                 <StyledTD>{new Date(item.pronostico.fecha_creacion).toLocaleString()}</StyledTD>
                             </tr>
-                        )) : <tr><StyledTD colSpan="7" className="text-center">No hay pronósticos disponibles.</StyledTD>
+                        )) : <tr><StyledTD colSpan="8" className="text-center">No hay pronósticos disponibles.</StyledTD>
                         </tr>}
                         </tbody>
                     </Table>
