@@ -15,10 +15,12 @@ export const CancelAceptModal = ({ subTitle, ...props }) => {
 				<Modal.Title>{props.title}</Modal.Title>
 			</Modal.Header>
 			<Modal.Body>
-				<div>
-					<strong>{subTitle}</strong>
-				</div>
-				<div>
+				{subTitle && (
+					<div style={{ marginBottom: '10px' }}>
+						<strong>{subTitle}</strong>
+					</div>
+				)}
+				<div style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
 					{props.message}
 				</div>
 			</Modal.Body>
@@ -36,7 +38,7 @@ export const CancelAceptModal = ({ subTitle, ...props }) => {
 							</>
 						) :
 
-						props.title === 'Medición Actualizada' || props.title === 'Proveedor registrado' || props.title === 'Tarea registrada' ?
+						props.title === 'Medición Actualizada' || props.title === 'Proveedor registrado' || props.title === 'Tarea registrada' || props.title === 'Pronóstico Realizado' ?
 
 							(
 								<PButton onClick={() => handleConfirm('Edit')}>

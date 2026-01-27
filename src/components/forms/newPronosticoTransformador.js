@@ -630,13 +630,10 @@ export const NewPronosticoTransformador = () => {
             const respond = await createPronosticoTransformador(userData.token, data)
             setIsSuccess(true)
             setTitle('Pronóstico Realizado')
-            setSubTitle('Datos Calculados')
+            setSubTitle('Resumen')
             setMessage(
-                'HI Total: ' + respond.resumen.hi_total + '%\n' +
-                'Condición: ' + respond.resumen.condicion + '\n' +
-                'RM: ' + respond.resumen.rm_actual + '\n' +
-                'Fecha óptima: ' + respond.resumen.fecha_optima_sugerida + '\n' +
-                'Recomendación: ' + respond.resumen.recomendacion
+                `HI Total: ${respond.resumen.hi_total}%  |  Condición: ${respond.resumen.condicion}\n` +
+                `RM: ${respond.resumen.rm_actual}  |  Fecha óptima: ${respond.resumen.fecha_optima_sugerida}`
             )
         } catch (e) {
             setIsSuccess(false)
@@ -659,11 +656,14 @@ export const NewPronosticoTransformador = () => {
 
         if (text === 'Acept') {
             if (isSuccess) {
-                window.location.reload()
-                window.scrollTo({top: 0, behavior: 'smooth'})
+                nav('/pronosticosTransformadores')
             } else {
                 setShow(false)
             }
+        }
+
+        if (text === 'Edit') {
+            nav('/pronosticosTransformadores')
         }
     }
 
