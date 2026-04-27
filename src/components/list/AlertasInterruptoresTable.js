@@ -137,7 +137,7 @@ export const AlertasInterruptoresTable = () => {
         }
 
         // Crear encabezados del CSV
-        const headers = ['ID', 'Interruptor', 'Valor Medición', 'Tipo Alerta', 'Condición', 'Recomendación', 'Fecha']
+        const headers = ['ID', 'Interruptor', 'Valor Medición', 'Tipo Alerta', 'Condición', 'Recomendación', 'Fecha Medición', 'Fecha Último Mant.']
 
         // Crear filas con los datos filtrados
         const rows = alertas.map(alerta => [
@@ -147,7 +147,8 @@ export const AlertasInterruptoresTable = () => {
             alerta.alerta.tipo_alerta,
             alerta.alerta.condicion,
             alerta.alerta.recomendacion,
-            alerta.alerta.fecha_medicion
+            alerta.alerta.fecha_medicion,
+            alerta.alerta.fecha_mantenimiento || 'N/A'
         ])
 
         // Combinar encabezados y filas
@@ -251,7 +252,8 @@ export const AlertasInterruptoresTable = () => {
                             <StyledTH>Tipo Alerta</StyledTH>
                             <StyledTH>Condición</StyledTH>
                             <StyledTH>Recomendación</StyledTH>
-                            <StyledTH>Fecha</StyledTH>
+                            <StyledTH>Fecha Medición</StyledTH>
+                            <StyledTH>Fecha Último Mant.</StyledTH>
                         </tr>
                         </thead>
                         <tbody>
@@ -300,9 +302,10 @@ export const AlertasInterruptoresTable = () => {
                                         </svg>
                                     </button>
                                 </StyledTD>
-                                <StyledTD>{alerta.alerta.fecha_medicion}</StyledTD>
+                                <StyledTD>{new Date(alerta.alerta.fecha_medicion).toLocaleString()}</StyledTD>
+                                <StyledTD>{alerta.alerta.fecha_mantenimiento || '—'}</StyledTD>
                             </tr>
-                        )) : <tr><StyledTD colSpan="7" className="text-center">No hay alertas disponibles.</StyledTD>
+                        )) : <tr><StyledTD colSpan="8" className="text-center">No hay alertas disponibles.</StyledTD>
                         </tr>}
                         </tbody>
                     </Table>

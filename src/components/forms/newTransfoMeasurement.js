@@ -1,6 +1,7 @@
 import '../../styles/spinner.css'
 import * as XLSX from 'xlsx'
-import React, {useEffect, useState} from 'react'
+import * as d3 from 'd3'
+import React, {useEffect, useState, useRef} from 'react'
 import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
 import {DropZone} from '../tools/dropZone'
@@ -12,7 +13,10 @@ import {
     SButton,
     StyledForm,
     StyledFormSelect,
-    TitleReport
+    TitleReport,
+    ChartContainer,
+    SectionCard,
+    SectionTitle
 } from '../tools/styleContent'
 import {Alert, Container} from 'react-bootstrap'
 import {CancelAceptModal} from '../modals/cancelAceptModal'
@@ -57,6 +61,9 @@ export const NewTransformerMeasurement = () => {
     const [monoxidoCarbono, setMonoxidoCarbono] = useState('')
     const [docElec, setDocElec] = useState([])
     const [docEnsayo, setDocEnsayo] = useState([])
+    const [docBaseDatos, setDocBaseDatos] = useState([])
+    const [chartData, setChartData] = useState([])
+    const chartRef = useRef(null)
 
 
     const [formError, setFormError] = useState(false)
@@ -89,6 +96,75 @@ export const NewTransformerMeasurement = () => {
         fetchTransformadores().then(() => {
         })
     }, [])
+
+    // Renderizar gráfica con D3 cuando cambie chartData
+    useEffect(() => {
+        if (chartData.length === 0 || !chartRef.current) return
+
+        d3.select(chartRef.current).selectAll('*').remove()
+
+        const margin = {top: 20, right: 30, bottom: 60, left: 60}
+        const width = 700 - margin.left - margin.right
+        const height = 350 - margin.top - margin.bottom
+
+        const svg = d3.select(chartRef.current)
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`)
+
+        const x = d3.scaleBand()
+            .domain(chartData.map(d => d.date))
+            .range([0, width])
+            .padding(0.1)
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(chartData, d => d.promedio) * 1.1])
+            .range([height, 0])
+
+        svg.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x))
+            .selectAll('text')
+            .attr('transform', 'rotate(-45)')
+            .style('text-anchor', 'end')
+            .style('font-size', '10px')
+
+        svg.append('g')
+            .call(d3.axisLeft(y))
+
+        svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 0 - margin.left)
+            .attr('x', 0 - (height / 2))
+            .attr('dy', '1em')
+            .style('text-anchor', 'middle')
+            .style('font-size', '12px')
+            .text('Promedio AI603')
+
+        const line = d3.line()
+            .x(d => x(d.date) + x.bandwidth() / 2)
+            .y(d => y(d.promedio))
+
+        svg.append('path')
+            .datum(chartData)
+            .attr('fill', 'none')
+            .attr('stroke', '#007bff')
+            .attr('stroke-width', 2)
+            .attr('d', line)
+
+        svg.selectAll('.dot')
+            .data(chartData)
+            .enter()
+            .append('circle')
+            .attr('class', 'dot')
+            .attr('cx', d => x(d.date) + x.bandwidth() / 2)
+            .attr('cy', d => y(d.promedio))
+            .attr('r', 4)
+            .attr('fill', '#007bff')
+
+    }, [chartData])
 
     const loadFileElect = (list) => {
         setShowSpinner(true)
@@ -355,6 +431,66 @@ export const NewTransformerMeasurement = () => {
         setDioxidoCarbono('')
     }
 
+    const loadFileBaseDatos = (list) => {
+        setShowSpinner(true)
+        setDocBaseDatos((prevList) => [...prevList, ...list])
+        const file = list[0]
+        if (file) {
+            const reader = new FileReader()
+
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result)
+                const workbook = XLSX.read(data, {type: 'array'})
+
+                const firstSheetName = workbook.SheetNames[0]
+                const sheet = workbook.Sheets[firstSheetName]
+                const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
+
+                // Columna B (índice 1) = DATE, Columna F (índice 5) = AI603
+                const dateColIndex = 1
+                const valueColIndex = 5
+                const dataByDate = {}
+
+                jsonData.forEach((row, index) => {
+                    if (index === 0) return
+                    const dateValue = row[dateColIndex]
+                    const ai603Value = row[valueColIndex]
+
+                    if (dateValue && ai603Value !== undefined && ai603Value !== null && !isNaN(ai603Value)) {
+                        let dateStr
+                        if (typeof dateValue === 'number') {
+                            const excelDate = XLSX.SSF.parse_date_code(dateValue)
+                            dateStr = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`
+                        } else if (typeof dateValue === 'string') {
+                            dateStr = dateValue.split(' ')[0]
+                        } else {
+                            return
+                        }
+                        if (!dataByDate[dateStr]) dataByDate[dateStr] = []
+                        dataByDate[dateStr].push(parseFloat(ai603Value))
+                    }
+                })
+
+                const averages = Object.entries(dataByDate).map(([date, values]) => ({
+                    date,
+                    promedio: values.reduce((sum, val) => sum + val, 0) / values.length
+                }))
+
+                averages.sort((a, b) => new Date(a.date) - new Date(b.date))
+                setChartData(averages.slice(-30))
+            }
+
+            reader.readAsArrayBuffer(file)
+        }
+        setShowSpinner(false)
+    }
+
+    const deleteDocBaseDatos = (e) => {
+        e.preventDefault()
+        setDocBaseDatos([])
+        setChartData([])
+    }
+
     const convertFileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader()
@@ -553,56 +689,85 @@ export const NewTransformerMeasurement = () => {
                                 ) :
                                 (<></>)
                         }
-                        <Row xs={12}>
-                            <Col xs={12} md={6}>
-                                <Col xs={12}>
-                                    <RequiredLabel>Cargar Archivo de Medidas Electricas</RequiredLabel>
-                                </Col>
-                                {
-                                    docElec.length > 0 ? (
-                                        <>
-                                            <TitleReport>Ya se Cargaron los Datos</TitleReport>
-                                            <SButton onClick={deleteDocElect}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                     viewBox="0 0 24 24" fill="none">
-                                                    <path
-                                                        d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z"
-                                                        fill="#E40613"/>
+                        {/* Sección: Archivos de Pruebas */}
+                        <SectionCard>
+                            <SectionTitle>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2ZM16 18H8V16H16V18ZM16 14H8V12H16V14ZM13 9V3.5L18.5 9H13Z" fill="#E40613"/>
+                                </svg>
+                                Archivos de Pruebas Eléctricas
+                            </SectionTitle>
+                            <Row>
+                                <Col xs={12} md={6}>
+                                    <RequiredLabel>Medidas Eléctricas (.xlsx)</RequiredLabel>
+                                    {docElec.length > 0 ? (
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px'}}>
+                                            <TitleReport style={{margin: 0}}>Archivo cargado</TitleReport>
+                                            <SButton onClick={deleteDocElect} style={{width: 'auto', padding: '5px 10px', margin: 0}}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z" fill="#E40613"/>
                                                 </svg>
                                             </SButton>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <Col xs={12}>
-                                            <DropZone id={'fileElect'} loadFile={loadFileElect} type={'.xlsx'}/>
-                                        </Col>
-                                    )
-                                }
-                            </Col>
-                            <Col xs={12} md={6}>
-                                <Col xs={12}>
-                                    <RequiredLabel>Cargar Archivo de Medidas de Ensayo</RequiredLabel>
+                                        <DropZone id={'fileElect'} loadFile={loadFileElect} type={'.xlsx'}/>
+                                    )}
                                 </Col>
-                                {
-                                    docEnsayo.length > 0 ? (
-                                        <>
-                                            <TitleReport>Ya se Cargaron los Datos</TitleReport>
-                                            <SButton onClick={deleteDocEnsayo}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                     viewBox="0 0 24 24" fill="none">
-                                                    <path
-                                                        d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z"
-                                                        fill="#E40613"/>
+                                <Col xs={12} md={6}>
+                                    <RequiredLabel>Medidas de Ensayo (.xlsm)</RequiredLabel>
+                                    {docEnsayo.length > 0 ? (
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px'}}>
+                                            <TitleReport style={{margin: 0}}>Archivo cargado</TitleReport>
+                                            <SButton onClick={deleteDocEnsayo} style={{width: 'auto', padding: '5px 10px', margin: 0}}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z" fill="#E40613"/>
                                                 </svg>
                                             </SButton>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <Col xs={12}>
-                                            <DropZone id={'fileEnsayo'} loadFile={loadFileEnsayo} type={'.xlsm'}/>
-                                        </Col>
-                                    )
-                                }
-                            </Col>
-                        </Row>
+                                        <DropZone id={'fileEnsayo'} loadFile={loadFileEnsayo} type={'.xlsm'}/>
+                                    )}
+                                </Col>
+                            </Row>
+                        </SectionCard>
+
+                        {/* Sección: Base de Datos y Análisis */}
+                        <SectionCard>
+                            <SectionTitle>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" fill="#E40613"/>
+                                </svg>
+                                Base de Datos y Análisis Gráfico
+                            </SectionTitle>
+                            <Row>
+                                <Col xs={12} md={6}>
+                                    <LabelForm>Archivo Base de Datos (.xlsx)</LabelForm>
+                                    {docBaseDatos.length > 0 ? (
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px'}}>
+                                            <TitleReport style={{margin: 0}}>Archivo cargado</TitleReport>
+                                            <SButton onClick={deleteDocBaseDatos} style={{width: 'auto', padding: '5px 10px', margin: 0}}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M7 21C6.45 21 5.97933 20.8043 5.588 20.413C5.19667 20.0217 5.00067 19.5507 5 19V6H4V4H9V3H15V4H20V6H19V19C19 19.55 18.8043 20.021 18.413 20.413C18.0217 20.805 17.5507 21.0007 17 21H7ZM17 6H7V19H17V6ZM9 17H11V8H9V17ZM13 17H15V8H13V17Z" fill="#E40613"/>
+                                                </svg>
+                                            </SButton>
+                                        </div>
+                                    ) : (
+                                        <DropZone id={'fileBaseDatos'} loadFile={loadFileBaseDatos} type={'.xlsx,.xls'}/>
+                                    )}
+                                </Col>
+                            </Row>
+                            {chartData.length > 0 && (
+                                <ChartContainer>
+                                    <LabelForm style={{marginBottom: '15px', fontSize: '1rem'}}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginRight: '8px'}}>
+                                            <path d="M3.5 18.49L9.5 12.48L13.5 16.48L22 6.92L20.59 5.51L13.5 13.48L9.5 9.48L2 16.99L3.5 18.49Z" fill="#99ABB4"/>
+                                        </svg>
+                                        Promedio Diario AI603 - Últimos 30 días
+                                    </LabelForm>
+                                    <div ref={chartRef} style={{minWidth: '700px'}}></div>
+                                </ChartContainer>
+                            )}
+                        </SectionCard>
                         <hr></hr>
                         <Row xs={12}>
                             <Col xs={12} md={6} className={`${!transformador && formError ? 'errorForm' : ''}`}>

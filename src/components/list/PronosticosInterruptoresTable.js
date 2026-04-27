@@ -128,23 +128,21 @@ export const PronosticosInterruptoresTable = () => {
         }
 
         // Crear encabezados del CSV
-        const headers = ['ID', 'Interruptor', 'Tiempo Apertura (ms)', 'Tiempo Cierre (ms)', 'Núm. Operaciones',
-                        'Corriente Falla (A)', 'Resistencia Contactos (Ω)', 'Fecha Mantenimiento',
-                        'Prob. Mantenimiento (%)', 'Fecha Programada', 'Fecha Óptima Sugerida', 'Fecha Creación']
+        const headers = ['ID', 'Interruptor', 'I_DM', 'I_EE', 'I_M (actual)',
+                        'I_M (anterior)', 'ΔIM', 'Pmant (%)', 'Fecha Último Mant.', 'Fecha Rec. Mantenimiento', 'Fecha Creación']
 
         // Crear filas con los datos filtrados
         const rows = pronosticos.map(item => [
             item.pronostico.idpronostico,
             item.equipo ? item.equipo.nombre : 'N/A',
-            item.pronostico.tiempo_apertura,
-            item.pronostico.tiempo_cierre,
-            item.pronostico.numero_operaciones,
-            item.pronostico.corriente_falla,
-            item.pronostico.resistencia_contactos,
+            item.pronostico.I_DM ?? 'N/A',
+            item.pronostico.I_EE ?? 'N/A',
+            item.pronostico.I_M ?? 'N/A',
+            item.pronostico.I_M_prev ?? 'N/A',
+            item.pronostico.delta_IM ?? 'N/A',
+            item.pronostico.Pmant != null ? (parseFloat(item.pronostico.Pmant) * 100).toFixed(2) : 'N/A',
             item.pronostico.fecha_mantenimiento,
-            item.pronostico.probabilidad_mantenimiento || 'N/A',
-            item.pronostico.fecha_programada || 'N/A',
-            item.pronostico.fecha_optima_sugerida || 'N/A',
+            item.pronostico.fecha_recomendada ?? 'N/A',
             item.pronostico.fecha_creacion
         ])
 
@@ -227,10 +225,14 @@ export const PronosticosInterruptoresTable = () => {
                         <tr>
                             <StyledTH>ID</StyledTH>
                             <StyledTH>Interruptor</StyledTH>
-                            <StyledTH>Fecha Mant.</StyledTH>
-                            <StyledTH>Prob. Mant. (%)</StyledTH>
-                            <StyledTH>Fecha Programada</StyledTH>
-                            <StyledTH>Fecha Óptima</StyledTH>
+                            <StyledTH>I_DM</StyledTH>
+                            <StyledTH>I_EE</StyledTH>
+                            <StyledTH>I_M actual</StyledTH>
+                            <StyledTH>I_M anterior</StyledTH>
+                            <StyledTH>ΔIM</StyledTH>
+                            <StyledTH>Pmant (%)</StyledTH>
+                            <StyledTH>Fecha Último Mant.</StyledTH>
+                            <StyledTH>Fecha Rec. Mantenimiento</StyledTH>
                             <StyledTH>Fecha Creación</StyledTH>
                         </tr>
                         </thead>
@@ -239,13 +241,17 @@ export const PronosticosInterruptoresTable = () => {
                             <tr key={item.pronostico.idpronostico}>
                                 <StyledTD>{item.pronostico.idpronostico}</StyledTD>
                                 <StyledTD>{item.equipo ? item.equipo.nombre : 'N/A'}</StyledTD>
+                                <StyledTD>{item.pronostico.I_DM ?? '—'}</StyledTD>
+                                <StyledTD>{item.pronostico.I_EE ?? '—'}</StyledTD>
+                                <StyledTD>{item.pronostico.I_M ?? '—'}</StyledTD>
+                                <StyledTD>{item.pronostico.I_M_prev ?? '—'}</StyledTD>
+                                <StyledTD>{item.pronostico.delta_IM ?? '—'}</StyledTD>
+                                <StyledTD>{item.pronostico.Pmant != null ? (parseFloat(item.pronostico.Pmant) * 100).toFixed(2) : '—'}</StyledTD>
                                 <StyledTD>{item.pronostico.fecha_mantenimiento}</StyledTD>
-                                <StyledTD>{item.pronostico.probabilidad_mantenimiento || 'N/A'}</StyledTD>
-                                <StyledTD>{item.pronostico.fecha_programada || 'N/A'}</StyledTD>
-                                <StyledTD>{item.pronostico.fecha_optima_sugerida || 'N/A'}</StyledTD>
+                                <StyledTD>{item.pronostico.fecha_recomendada ?? '—'}</StyledTD>
                                 <StyledTD>{new Date(item.pronostico.fecha_creacion).toLocaleString()}</StyledTD>
                             </tr>
-                        )) : <tr><StyledTD colSpan="7" className="text-center">No hay pronósticos disponibles.</StyledTD>
+                        )) : <tr><StyledTD colSpan="11" className="text-center">No hay pronósticos disponibles.</StyledTD>
                         </tr>}
                         </tbody>
                     </Table>

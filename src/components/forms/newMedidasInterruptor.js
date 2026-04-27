@@ -1,442 +1,826 @@
-import '../../styles/spinner.css';
-import React, {useEffect, useState} from 'react';
-import {Alert, Col, Container, Row} from 'react-bootstrap';
-import {DivForm, InputForm, PButton, SButton, StyledForm, StyledFormSelect, TitleReport} from '../tools/styleContent';
-import {CancelAceptModal} from '../modals/cancelAceptModal';
-import {createMedidasInterruptores, getInterruptores} from '../../services/interruptor.services';
-import {Spinner} from '../tools/spinner';
-import {useNavigate} from 'react-router-dom';
-import {UseLogout2} from "../../hooks/useLogout2";
-import RequiredLabel from "../tools/requiredLabel";
-import {DropZone} from "../tools/dropZone";
-import * as XLSX from "xlsx";
-import { csvParse } from 'd3';
+import '../../styles/spinner.css'
+import React, {useEffect, useState} from 'react'
+import Col from 'react-bootstrap/Col'
+import Row from 'react-bootstrap/Row'
+import {DropZone} from '../tools/dropZone'
+import {
+    DivForm,
+    InputForm,
+    PButton,
+    SButton,
+    StyledForm,
+    StyledFormSelect,
+    TitleReport
+} from '../tools/styleContent'
+import {Alert, Container} from 'react-bootstrap'
+import {CancelAceptModal} from '../modals/cancelAceptModal'
+import {getInterruptores, createMedidasInterruptores} from '../../services/interruptor.services'
+import {Spinner} from '../tools/spinner'
+import {useNavigate} from 'react-router-dom'
+import {UseLogout2} from '../../hooks/useLogout2'
+import RequiredLabel from "../tools/requiredLabel"
+import {dsvFormat} from 'd3'
+import * as XLSX from 'xlsx'
 
 export const NewMedidasInterruptor = () => {
-    const navigate = useNavigate();
-    const {logOut} = UseLogout2();
 
-    const [interruptor, setInterruptor] = useState('');
-    const [interruptores, setInterruptores] = useState([]);
-    const [loadingInterruptores, setLoadingInterruptores] = useState(true);
+    const nav = useNavigate()
+    const {logOut} = UseLogout2()
 
-    // Estados para los campos del formulario
-    const [numeroOperaciones, setNumeroOperaciones] = useState('');
-    const [corrienteFalla, setCorrienteFalla] = useState('');
+    const [interruptor, setInterruptor] = useState('')
+    const [interruptores, setInterruptores] = useState([])
+    const [loadingInterruptores, setLoadingInterruptores] = useState(true)
 
-    // Nuevos estados para tiempos de apertura, cierre y resistencias de contacto
-    const [tiempoAperturaA, setTiempoAperturaA] = useState('');
-    const [tiempoAperturaB, setTiempoAperturaB] = useState('');
-    const [tiempoAperturaC, setTiempoAperturaC] = useState('');
+    const [docArchivo1, setDocArchivo1] = useState([])
+    const [docArchivo2, setDocArchivo2] = useState([])
+    const [docArchivo3, setDocArchivo3] = useState([])
 
-    const [tiempoCierreA, setTiempoCierreA] = useState('');
-    const [tiempoCierreB, setTiempoCierreB] = useState('');
-    const [tiempoCierreC, setTiempoCierreC] = useState('');
+    const [tiempoApertura, setTiempoApertura] = useState('')
+    const [tiempoCierre, setTiempoCierre] = useState('')
+    const [numeroOperaciones, setNumeroOperaciones] = useState('')
+    const [corrienteFalla, setCorrienteFalla] = useState('')
+    const [resistenciaContactos, setResistenciaContactos] = useState('')
+    const [fechaMantenimiento, setFechaMantenimiento] = useState('')
+    // eslint-disable-next-line no-unused-vars
+    const [fase, setFase] = useState('')
+    const [faseDetectada, setFaseDetectada] = useState(false)
 
-    const [resistenciaContactosR, setResistenciaContactosR] = useState('');
-    const [resistenciaContactosS, setResistenciaContactosS] = useState('');
-    const [resistenciaContactosT, setResistenciaContactosT] = useState('');
+    const [archivos2y3Habilitados, setArchivos2y3Habilitados] = useState(false)
+    const [errorFase, setErrorFase] = useState(false)
+    const [errorNumeroOperaciones, setErrorNumeroOperaciones] = useState(false)
 
-    // Estados para manejo de alertas y modales
-    const [formError, setFormError] = useState(false);
-    const [show, setShow] = useState(false);
-    const [showAlert, setShowAlert] = useState(false);
-    const [title, setTitle] = useState('');
-    const [subTitle, setSubTitle] = useState('');
-    const [message, setMessage] = useState('');
-    const [showSpinner, setShowSpinner] = useState(false);
+    const [formError, setFormError] = useState(false)
+    const [show, setShow] = useState(false)
+    const [showAlert, setShowAlert] = useState(false)
+    const [title, setTitle] = useState('')
+    const [subTitle, setSubTitle] = useState('')
+    const [message, setMessage] = useState('')
+    const [showSpinner, setShowSpinner] = useState(false)
 
-    const [docTiempos, setDocTiempos] = useState([])
-    const [docOperaciones, setDocOperaciones] = useState([])
-    const [docCorriente, setDocCorriente] = useState([])
-    const [error, setError] = useState(null);
-
-    const handleCloseModal = () => setShow(false);
+    const handleCloseModal = () => {
+        setShow(false)
+    }
 
     useEffect(() => {
         const fetchInterruptores = async () => {
             try {
-                const user = JSON.parse(window.localStorage.getItem('loggedAppUser'));
-                const response = await getInterruptores(user.token);
-                setInterruptores(response);
-                setLoadingInterruptores(false);
+                const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
+                const response = await getInterruptores(user.token)
+                setInterruptores(response)
+                setLoadingInterruptores(false)
+                return response
             } catch (error) {
-                console.error('Error al cargar los interruptores:', error);
-                logOut();
-            }
-        };
-
-        fetchInterruptores();
-    }, [logOut]);
-
-    const createMeasurement = async (event) => {
-        event.preventDefault();
-        setShowSpinner(true);
-
-        // Validación de todos los campos requeridos
-        if (
-            !interruptor ||
-            !numeroOperaciones ||
-            !corrienteFalla ||
-            !tiempoAperturaA || !tiempoAperturaB || !tiempoAperturaC ||
-            !tiempoCierreA || !tiempoCierreB || !tiempoCierreC ||
-            !resistenciaContactosR || !resistenciaContactosS || !resistenciaContactosT
-        ) {
-            setShowAlert(true);
-            setFormError(true);
-            window.scrollTo({top: 0, behavior: 'smooth'});
-            setShowSpinner(false);
-            return;
-        }
-
-        try {
-            const user = JSON.parse(window.localStorage.getItem('loggedAppUser'));
-
-            const data = {
-                Interruptores_idInterruptores: interruptor,
-                numero_operaciones: parseInt(numeroOperaciones, 10),
-                corriente_falla: parseFloat(corrienteFalla),
-
-                // Tiempos de Apertura
-                tiempo_apertura_A: parseFloat(tiempoAperturaA),
-                tiempo_apertura_B: parseFloat(tiempoAperturaB),
-                tiempo_apertura_C: parseFloat(tiempoAperturaC),
-
-                // Tiempos de Cierre
-                tiempo_cierre_A: parseFloat(tiempoCierreA),
-                tiempo_cierre_B: parseFloat(tiempoCierreB),
-                tiempo_cierre_C: parseFloat(tiempoCierreC),
-
-                // Resistencias de Contacto
-                resistencia_contactos_R: parseFloat(resistenciaContactosR),
-                resistencia_contactos_S: parseFloat(resistenciaContactosS),
-                resistencia_contactos_T: parseFloat(resistenciaContactosT),
-            };
-
-            const response = await createMedidasInterruptores(user.token, data);
-
-            setTitle('Medición Registrada');
-            setSubTitle('Datos guardados exitosamente');
-            setMessage(`Medición registrada con éxito. ID: ${response.id_alerta}`);
-        } catch (error) {
-            setTitle('Error');
-            setSubTitle('');
-            setMessage('No se pudo registrar la medición. Inténtelo de nuevo.');
-            if (error.response?.data?.error?.name === 'TokenExpiredError') {
-                logOut();
+                console.error('Error al cargar los interruptores:', error)
+                logOut()
             }
         }
 
-        setShow(true);
-        setShowSpinner(false);
-    };
+        fetchInterruptores().then(() => {
+        })
+    }, [logOut])
 
-    const handleConfirmSubmit = (text) => {
-        if (text === 'Cancel') {
-            navigate('/');
-        }
-        if (text === 'Acept') {
-            window.location.reload();
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        }
-    };
-
-    const showCancelModal = (event) => {
-        event.preventDefault();
-        setShow(true);
-        setTitle('Cancelar Registro');
-        setMessage('¿Está seguro de que desea cancelar el registro de medición?');
-    };
-
-    const deleteDocTiempos = (e) => {
-        e.preventDefault()
-        setDocTiempos([])
-        setError(null)
-        setTiempoAperturaA('')
-        setTiempoAperturaB('')
-        setTiempoAperturaC('')
-        setTiempoCierreA('');
-        setTiempoCierreB('');
-        setTiempoCierreC('');
-    }
-
-    const deleteDocOperaciones = (e) => {
-        e.preventDefault()
-        setDocOperaciones([])
-        setError(null)
-        setNumeroOperaciones('')
-    }
-
-    const deleteDocCorriente = (e) => {
-        e.preventDefault()
-        setDocCorriente([])
-        setError(null)
-        setCorrienteFalla('')
-    }
-
-    const loadFileTiempos = (list) => {
-        setShowSpinner(true) // Aquí activas correctamente el spinner
-        setDocTiempos((prevList) => [...prevList, ...list])
-        const file = list[0]
-        if (file) {
-            const reader = new FileReader()
-
-            // Leer el archivo como un ArrayBuffer
-            reader.onload = (event) => {
-                try {
-                    const data = new Uint8Array(event.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'})
-
-                    const sheetTiempos = workbook.Sheets["O-CO Timing"]
-                    const sheetResitencia = workbook.Sheets["Contact Resistance"]
-
-                    if (!sheetTiempos) {
-                        setError("No se encontró la pestaña 'O-CO Timing' en el archivo.")
-                        setShowSpinner(false)
-                        return
-                    }
-
-                    if (!sheetResitencia) {
-                        setError("No se encontró la pestaña 'Contact Resistance' en el archivo.")
-                        setShowSpinner(false)
-                        return
-                    }
-
-                    // Leer las celdas requeridas
-                    const tiempoAperturaA = parseFloat((sheetTiempos['C61'].v * 1000).toFixed(2))
-                    const tiempoAperturaB = parseFloat((sheetTiempos['C63'].v * 1000).toFixed(2))
-                    const tiempoAperturaC = parseFloat((sheetTiempos['C65'].v * 1000).toFixed(2))
-
-                    const tiempoCierreA = parseFloat((sheetTiempos['E61'].v * 1000).toFixed(2))
-                    const tiempoCierreB = parseFloat((sheetTiempos['E63'].v * 1000).toFixed(2))
-                    const tiempoCierreC = parseFloat((sheetTiempos['E65'].v * 1000).toFixed(2))
-
-                    const resistenciaR = parseFloat((sheetResitencia['F49'].v * 1000).toFixed(6))
-                    const resistenciaS = parseFloat((sheetResitencia['F50'].v * 1000).toFixed(6))
-                    const resistenciaT = parseFloat((sheetResitencia['F51'].v * 1000).toFixed(6))
-
-                    // Actualizar los estados
-                    setTiempoAperturaA(tiempoAperturaA)
-                    setTiempoAperturaB(tiempoAperturaB)
-                    setTiempoAperturaC(tiempoAperturaC)
-
-                    setTiempoCierreA(tiempoCierreA)
-                    setTiempoCierreB(tiempoCierreB)
-                    setTiempoCierreC(tiempoCierreC)
-
-                    setResistenciaContactosR(resistenciaR)
-                    setResistenciaContactosS(resistenciaS)
-                    setResistenciaContactosT(resistenciaT)
-
-                    setError(null)
-                } catch (error) {
-                    setError(error)
-                } finally {
-                    setShowSpinner(false)
-                }
-            };
-
-            reader.onerror = () => {
-                setError("No se pudo leer el archivo. Asegúrate de que sea un archivo Excel válido.");
-                setShowSpinner(false)
-            };
-
-            reader.readAsArrayBuffer(file);
+    useEffect(() => {
+        if (faseDetectada && interruptor) {
+            setArchivos2y3Habilitados(true)
         } else {
-            setShowSpinner(false);
+            setArchivos2y3Habilitados(false)
         }
-    }
+    }, [faseDetectada, interruptor])
 
-    const loadFileOperaciones = (list) => {
-        setShowSpinner(true)
-        setDocOperaciones((prevList) => [...prevList, ...list])
-        const file = list[0]
-        if (file) {
+    useEffect(() => {
+        if (interruptor && faseDetectada && docArchivo2.length > 0) {
+            setNumeroOperaciones('')
+            setErrorNumeroOperaciones(false)
+
+            const file = docArchivo2[0]
             const reader = new FileReader()
 
-            reader.onload = (event) => {
+            reader.onload = (e) => {
                 try {
-                    if (!interruptor) {
-                        setError("Debe de seleccionar un interruptor!")
-                        setShowSpinner(false)
-                        setDocOperaciones([])
+                    const data = new Uint8Array(e.target.result)
+                    const workbook = XLSX.read(data, { type: 'array' })
+
+                    if (!workbook.SheetNames.includes('BASE')) {
+                        setErrorNumeroOperaciones(true)
                         return
                     }
 
-                    const interruptorData = interruptores.find(inter => inter.idinterruptores === parseInt(interruptor));
+                    const worksheet = workbook.Sheets['BASE']
+                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
 
-                    const data = new Uint8Array(event.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'})
+                    let headerRowIndex = -1
+                    let headers = []
 
-                    const sheet = workbook.Sheets["BASE"]
-
-                    if (!sheet) {
-                        setError("No se encontró la pestaña 'BASE' en el archivo.")
-                        setShowSpinner(false)
-                        return
-                    }
-
-                    // Convertir la hoja a un DataFrame
-                    const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1})
-
-                    // Crear un DataFrame para manipular los datos
-                    const df = jsonData.slice(2) // Ignorar las dos primeras filas
-
-                    const columns = jsonData[1] // Encabezados reales (fila 2)
-
-                    const dfWithHeaders = df.map(row => {
-                        return Object.fromEntries(
-                            row.map((value, index) => {
-                                // Ignorar valores que son undefined
-                                if (value !== undefined && columns[index] !== undefined) {
-                                    return [columns[index], value];
-                                }
-                                return null;
-                            }).filter(entry => entry !== null) // Filtrar entradas nulas
-                        )
-                    });
-
-                    // Filtrar filas por 'Nomenclatura Operativa' (Columna F) y 'Subestacion' (Columna C)
-                    const interruptorSeleccionado = interruptorData.nombre;
-                    const subestacionSeleccionada = interruptorData.subestacion;
-
-                    const filasFiltradas = dfWithHeaders.filter(row =>
-                        row['Nomenclatura Operativa'] === interruptorSeleccionado &&
-                        row['Subestacion'] === subestacionSeleccionada
-                    )
-
-                    if (filasFiltradas.length === 0) {
-                        setError("No se encontraron datos para el interruptor seleccionado.")
-                        setShowSpinner(false)
-                        return
-                    }
-
-                    const filaSeleccionada = filasFiltradas[0];
-
-                    // Verificar si hay un valor en la columna 'Numero Operaciones Tripolar'
-                    const valorR = filaSeleccionada['Numero Operaciones Tripolar'];
-
-                    let numeroOperaciones;
-                    if (valorR) {
-                        numeroOperaciones = valorR;
-                    } else {
-                        // Si no hay valor en 'Numero Operaciones Tripolar', calcular el promedio de 'Numero Operaciones Polo A', 'Numero Operaciones Polo B', 'Numero Operaciones Polo c'
-                        const valoresABC = ['Numero Operaciones Polo A', 'Numero Operaciones Polo B', 'Numero Operaciones Polo c'].map(col => parseFloat(filaSeleccionada[col])).filter(val => !isNaN(val));
-                        if (valoresABC.length > 0) {
-                            numeroOperaciones = valoresABC.reduce((acc, val) => acc + val, 0) / valoresABC.length;
-                        } else {
-                            setError("No se encontraron valores válidos para promediar.")
-                            setShowSpinner(false)
-                            return;
+                    for (let i = 0; i < rawData.length; i++) {
+                        const row = rawData[i]
+                        if (row.some(cell => cell && cell.toString().includes('Nomenclatura Operativa'))) {
+                            headerRowIndex = i
+                            headers = row
+                            break
                         }
                     }
 
-                    // Actualizar el estado con el número de operaciones calculado
-                    setNumeroOperaciones(numeroOperaciones);
+                    if (headerRowIndex === -1) {
+                        setErrorNumeroOperaciones(true)
+                        return
+                    }
 
-                    setError(null)
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                        header: headers,
+                        range: headerRowIndex + 1,
+                        defval: ''
+                    })
+
+                    const interruptorSeleccionado = interruptores.find(
+                        i => i.idinterruptores === parseInt(interruptor)
+                    )
+
+                    if (!interruptorSeleccionado) {
+                        setErrorNumeroOperaciones(true)
+                        return
+                    }
+
+                    const dispositivoNombre = interruptorSeleccionado.nombre
+
+                    const filasFiltradas = jsonData.filter(row => {
+                        const nomenclatura = row['Nomenclatura Operativa'] || ''
+                        return nomenclatura.toString().trim() === dispositivoNombre.trim()
+                    })
+
+                    if (filasFiltradas.length === 0) {
+                        setErrorNumeroOperaciones(true)
+                        return
+                    }
+
+                    let valoresR = []
+                    filasFiltradas.forEach(row => {
+                        const valorR = row['Numero Operaciones Tripolar']
+                        if (valorR && valorR !== '' && !isNaN(parseFloat(valorR))) {
+                            valoresR.push(parseFloat(valorR))
+                        }
+                    })
+
+                    if (valoresR.length > 0) {
+                        const maxR = Math.max(...valoresR)
+                        setNumeroOperaciones(maxR)
+                        setErrorNumeroOperaciones(false)
+                        return
+                    }
+
+                    let valoresFases = []
+                    filasFiltradas.forEach(row => {
+                        if (fase === 'G') {
+                            const valorA = row['Numero Operaciones Polo A']
+                            const valorB = row['Numero Operaciones Polo B']
+                            const valorC = row['Numero Operaciones Polo c']
+
+                            if (valorA && valorA !== '' && !isNaN(parseFloat(valorA))) {
+                                valoresFases.push(parseFloat(valorA))
+                            }
+                            if (valorB && valorB !== '' && !isNaN(parseFloat(valorB))) {
+                                valoresFases.push(parseFloat(valorB))
+                            }
+                            if (valorC && valorC !== '' && !isNaN(parseFloat(valorC))) {
+                                valoresFases.push(parseFloat(valorC))
+                            }
+                        } else {
+                            let valorFase = null
+
+                            if (fase === 'A') {
+                                valorFase = row['Numero Operaciones Polo A']
+                            } else if (fase === 'B') {
+                                valorFase = row['Numero Operaciones Polo B']
+                            } else if (fase === 'C') {
+                                valorFase = row['Numero Operaciones Polo c']
+                            }
+
+                            if (valorFase && valorFase !== '' && !isNaN(parseFloat(valorFase))) {
+                                valoresFases.push(parseFloat(valorFase))
+                            }
+                        }
+                    })
+
+                    if (valoresFases.length > 0) {
+                        const maxFase = Math.max(...valoresFases)
+                        setNumeroOperaciones(maxFase)
+                        setErrorNumeroOperaciones(false)
+                        return
+                    }
+
+                    setErrorNumeroOperaciones(true)
+
                 } catch (error) {
-                    setError("Asegúrate de que sea un archivo Excel válido.")
-                } finally {
-                    setShowSpinner(false)
+                    console.error('Error al reprocesar el archivo Excel:', error)
+                    setErrorNumeroOperaciones(true)
                 }
-            };
+            }
 
-            reader.onerror = () => {
-                setError("No se pudo leer el archivo. Asegúrate de que sea un archivo Excel válido.");
-                setShowSpinner(false)
-            };
+            reader.readAsArrayBuffer(file)
+        }
+    }, [interruptor, interruptores, fase, faseDetectada, docArchivo2])
 
-            reader.readAsArrayBuffer(file);
-        } else {
-            setShowSpinner(false);
+    const loadFileArchivo1 = (list) => {
+        setShowSpinner(true)
+        setDocArchivo1((prevList) => [...prevList, ...list])
+
+        const file = list[0]
+        const reader = new FileReader()
+
+        reader.onload = (e) => {
+            try {
+                const text = e.target.result
+                const semicolonParser = dsvFormat(';')
+                const data = semicolonParser.parse(text)
+
+                const timestampColumn = data.columns[0]
+
+                const filteredData = data.filter(row =>
+                    row['Functions structure'] &&
+                    row['Functions structure'].includes('Circuit Breaker:Circuit break.') &&
+                    row['Name'] &&
+                    row['Name'].includes('Break.-current phs')
+                )
+
+                if (filteredData.length === 0) {
+                    console.warn('No se encontraron datos con los criterios especificados en el archivo CSV')
+                    setErrorFase(true)
+                    setFaseDetectada(false)
+                    window.scrollTo({top: 0, behavior: 'smooth'})
+                    setShowSpinner(false)
+                    return
+                }
+
+                filteredData.sort((a, b) => {
+                    const dateA = new Date(a[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
+                    const dateB = new Date(b[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
+                    return dateB - dateA
+                })
+
+                const mostRecent = filteredData[0]
+
+                const valueMatch = mostRecent['Value'].match(/(\d+(?:\.\d+)?)/);
+                if (valueMatch) {
+                    const numericValue = parseFloat(valueMatch[1])
+                    setCorrienteFalla(numericValue)
+                }
+
+                const faseMatch = mostRecent['Name'].match(/phs ([ABC])/);
+                if (faseMatch) {
+                    setFase(faseMatch[1])
+                    setFaseDetectada(true)
+                    setErrorFase(false)
+                } else {
+                    console.log('No se detectó fase específica, usando fase genérica G')
+                    setFase('G')
+                    setFaseDetectada(true)
+                    setErrorFase(false)
+                }
+
+                const definitiveTrips = data.filter(row =>
+                    row['Functions structure'] &&
+                    row['Functions structure'].includes('Circuit Breaker:Circuit break.') &&
+                    row['Name'] &&
+                    row['Name'].includes('Definitive trip')
+                )
+
+                if (definitiveTrips.length >= 2) {
+                    definitiveTrips.sort((a, b) => {
+                        const dateA = new Date(a[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
+                        const dateB = new Date(b[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
+                        return dateB - dateA
+                    })
+
+                    const trip1 = definitiveTrips[0]
+                    const trip2 = definitiveTrips[1]
+
+                    const val1 = trip1['Value'].toLowerCase()
+                    const val2 = trip2['Value'].toLowerCase()
+
+                    let offRecord, onRecord
+
+                    if ((val1 === 'off' || val1 === 'false') && (val2 === 'on' || val2 === 'true')) {
+                        offRecord = trip1
+                        onRecord = trip2
+                    } else if ((val2 === 'off' || val2 === 'false') && (val1 === 'on' || val1 === 'true')) {
+                        offRecord = trip2
+                        onRecord = trip1
+                    }
+
+                    if (offRecord && onRecord) {
+                        const offTime = offRecord['Relative time']
+                        const onTime = onRecord['Relative time']
+
+                        const parseRelativeTime = (timeStr) => {
+                            const isNegative = timeStr.startsWith('-')
+                            const cleanStr = timeStr.replace('-', '')
+                            const parts = cleanStr.split(':')
+
+                            if (parts.length === 4) {
+                                const seconds = parseFloat(parts[3])
+                                const minutes = parseInt(parts[2]) || 0
+                                const hours = parseInt(parts[1]) || 0
+                                const days = parseInt(parts[0]) || 0
+
+                                const totalMs = (days * 24 * 60 * 60 * 1000) +
+                                               (hours * 60 * 60 * 1000) +
+                                               (minutes * 60 * 1000) +
+                                               (seconds * 1000)
+
+                                return isNegative ? -totalMs : totalMs
+                            }
+                            return 0
+                        }
+
+                        const offTimeMs = parseRelativeTime(offTime)
+                        const onTimeMs = parseRelativeTime(onTime)
+
+                        const tiempoAperturaMs = Math.abs(offTimeMs - onTimeMs)
+                        setTiempoApertura(Math.round(tiempoAperturaMs))
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error al procesar el archivo CSV:', error)
+                setErrorFase(true)
+                setFaseDetectada(false)
+                window.scrollTo({top: 0, behavior: 'smooth'})
+            }
+            setShowSpinner(false)
+        }
+
+        reader.onerror = (error) => {
+            console.error('Error al leer el archivo:', error)
+            setShowSpinner(false)
+        }
+
+        reader.readAsText(file)
+    }
+
+    const loadFileArchivo2 = (list) => {
+        setShowSpinner(true)
+        setDocArchivo2((prevList) => [...prevList, ...list])
+
+        const file = list[0]
+        const reader = new FileReader()
+
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result)
+                const workbook = XLSX.read(data, { type: 'array' })
+
+                if (!workbook.SheetNames.includes('BASE')) {
+                    console.error('No se encontró la hoja "BASE" en el archivo Excel')
+                    setErrorNumeroOperaciones(true)
+                    window.scrollTo({top: 0, behavior: 'smooth'})
+                    setShowSpinner(false)
+                    return
+                }
+
+                const worksheet = workbook.Sheets['BASE']
+                const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
+
+                let headerRowIndex = -1
+                let headers = []
+
+                for (let i = 0; i < rawData.length; i++) {
+                    const row = rawData[i]
+                    if (row.some(cell => cell && cell.toString().includes('Nomenclatura Operativa'))) {
+                        headerRowIndex = i
+                        headers = row
+                        break
+                    }
+                }
+
+                if (headerRowIndex === -1) {
+                    console.error('No se encontró la fila de headers en el archivo Excel')
+                    setErrorNumeroOperaciones(true)
+                    window.scrollTo({top: 0, behavior: 'smooth'})
+                    setShowSpinner(false)
+                    return
+                }
+
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                    header: headers,
+                    range: headerRowIndex + 1,
+                    defval: ''
+                })
+
+                const interruptorSeleccionado = interruptores.find(
+                    i => i.idinterruptores === parseInt(interruptor)
+                )
+
+                if (!interruptorSeleccionado) {
+                    console.error('No se pudo obtener el nombre del interruptor seleccionado')
+                    setErrorNumeroOperaciones(true)
+                    window.scrollTo({top: 0, behavior: 'smooth'})
+                    setShowSpinner(false)
+                    return
+                }
+
+                const dispositivoNombre = interruptorSeleccionado.nombre
+
+                const filasFiltradas = jsonData.filter(row => {
+                    const nomenclatura = row['Nomenclatura Operativa'] || ''
+                    return nomenclatura.toString().trim() === dispositivoNombre.trim()
+                })
+
+                if (filasFiltradas.length === 0) {
+                    console.error('No se encontró el dispositivo en el archivo Excel')
+                    setErrorNumeroOperaciones(true)
+                    window.scrollTo({top: 0, behavior: 'smooth'})
+                    setShowSpinner(false)
+                    return
+                }
+
+                let valoresR = []
+
+                filasFiltradas.forEach(row => {
+                    const valorR = row['Numero Operaciones Tripolar']
+                    if (valorR && valorR !== '' && !isNaN(parseFloat(valorR))) {
+                        valoresR.push(parseFloat(valorR))
+                    }
+                })
+
+                if (valoresR.length > 0) {
+                    const maxR = Math.max(...valoresR)
+                    setNumeroOperaciones(maxR)
+                    setErrorNumeroOperaciones(false)
+                    setShowSpinner(false)
+                    return
+                }
+
+                let valoresFases = []
+
+                filasFiltradas.forEach(row => {
+                    if (fase === 'G') {
+                        const valorA = row['Numero Operaciones Polo A']
+                        const valorB = row['Numero Operaciones Polo B']
+                        const valorC = row['Numero Operaciones Polo c']
+
+                        if (valorA && valorA !== '' && !isNaN(parseFloat(valorA))) {
+                            valoresFases.push(parseFloat(valorA))
+                        }
+                        if (valorB && valorB !== '' && !isNaN(parseFloat(valorB))) {
+                            valoresFases.push(parseFloat(valorB))
+                        }
+                        if (valorC && valorC !== '' && !isNaN(parseFloat(valorC))) {
+                            valoresFases.push(parseFloat(valorC))
+                        }
+                    } else {
+                        let valorFase = null
+
+                        if (fase === 'A') {
+                            valorFase = row['Numero Operaciones Polo A']
+                        } else if (fase === 'B') {
+                            valorFase = row['Numero Operaciones Polo B']
+                        } else if (fase === 'C') {
+                            valorFase = row['Numero Operaciones Polo c']
+                        }
+
+                        if (valorFase && valorFase !== '' && !isNaN(parseFloat(valorFase))) {
+                            valoresFases.push(parseFloat(valorFase))
+                        }
+                    }
+                })
+
+                if (valoresFases.length > 0) {
+                    const maxFase = Math.max(...valoresFases)
+                    setNumeroOperaciones(maxFase)
+                    setErrorNumeroOperaciones(false)
+                    setShowSpinner(false)
+                    return
+                }
+
+                console.error('No se encontraron mediciones en ninguna columna')
+                setErrorNumeroOperaciones(true)
+                window.scrollTo({top: 0, behavior: 'smooth'})
+
+            } catch (error) {
+                console.error('Error al procesar el archivo Excel:', error)
+                setErrorNumeroOperaciones(true)
+                window.scrollTo({top: 0, behavior: 'smooth'})
+            }
+            setShowSpinner(false)
+        }
+
+        reader.onerror = (error) => {
+            console.error('Error al leer el archivo:', error)
+            setErrorNumeroOperaciones(true)
+            window.scrollTo({top: 0, behavior: 'smooth'})
+            setShowSpinner(false)
+        }
+
+        reader.readAsArrayBuffer(file)
+    }
+
+    const loadFileArchivo3 = (list) => {
+        setShowSpinner(true)
+        setDocArchivo3((prevList) => [...prevList, ...list])
+
+        const file = list[0]
+        const reader = new FileReader()
+
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result)
+                const workbook = XLSX.read(data, { type: 'array' })
+
+                if (workbook.SheetNames.includes('Contact Resistance')) {
+                    const worksheet = workbook.Sheets['Contact Resistance']
+                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
+
+                    if (fase === 'G') {
+                        const valoresFases = []
+                        const fases = ['A', 'B', 'C']
+
+                        fases.forEach(f => {
+                            for (let i = 0; i < rawData.length; i++) {
+                                const row = rawData[i]
+                                const columnaC = row[2] ? row[2].toString().trim() : ''
+                                const columnaF = row[5]
+
+                                if (columnaC === f && columnaF && columnaF !== '' && !isNaN(parseFloat(columnaF))) {
+                                    valoresFases.push(parseFloat(columnaF))
+                                }
+                            }
+                        })
+
+                        if (valoresFases.length > 0) {
+                            const minValor = Math.min(...valoresFases)
+                            setResistenciaContactos(minValor)
+                        }
+
+                    } else {
+                        for (let i = 0; i < rawData.length; i++) {
+                            const row = rawData[i]
+                            const columnaC = row[2] ? row[2].toString().trim() : ''
+                            const columnaF = row[5]
+
+                            if (columnaC === fase && columnaF && columnaF !== '' && !isNaN(parseFloat(columnaF))) {
+                                setResistenciaContactos(parseFloat(columnaF))
+                                break
+                            }
+                        }
+                    }
+                } else {
+                    console.error('No se encontró la hoja "Contact Resistance" en el archivo Excel')
+                }
+
+                if (workbook.SheetNames.includes('Tiempos C')) {
+                    const worksheetTiempos = workbook.Sheets['Tiempos C']
+                    const dataTiempos = XLSX.utils.sheet_to_json(worksheetTiempos, { header: 1, defval: '' })
+
+                    let closingTimeColIndex = -1
+                    for (let i = 0; i < Math.min(100, dataTiempos.length); i++) {
+                        const row = dataTiempos[i]
+                        for (let j = 0; j < row.length; j++) {
+                            const cell = row[j] ? row[j].toString() : ''
+                            if (cell.includes('Closing time')) {
+                                closingTimeColIndex = j
+                                break
+                            }
+                        }
+                        if (closingTimeColIndex !== -1) break
+                    }
+
+                    if (closingTimeColIndex !== -1) {
+                        const faseMap = { 'A': 'R', 'B': 'S', 'C': 'T' }
+
+                        if (fase === 'G') {
+                            const valoresFases = []
+                            const fasesABuscar = ['R', 'S', 'T']
+
+                            fasesABuscar.forEach(f => {
+                                for (let i = 0; i < dataTiempos.length; i++) {
+                                    const row = dataTiempos[i]
+                                    const columnaA = row[0] ? row[0].toString().trim() : ''
+                                    const valorTiempo = row[closingTimeColIndex]
+
+                                    if (columnaA.match(new RegExp(`FASE ${f}`, 'i')) &&
+                                        valorTiempo && valorTiempo !== '' && !isNaN(parseFloat(valorTiempo))) {
+                                        valoresFases.push(parseFloat(valorTiempo))
+                                    }
+                                }
+                            })
+
+                            if (valoresFases.length > 0) {
+                                const maxValor = Math.max(...valoresFases)
+                                setTiempoCierre(maxValor * 1000)
+                            }
+
+                        } else {
+                            const faseABuscar = faseMap[fase] || fase
+
+                            for (let i = 0; i < dataTiempos.length; i++) {
+                                const row = dataTiempos[i]
+                                const columnaA = row[0] ? row[0].toString().trim() : ''
+                                const valorTiempo = row[closingTimeColIndex]
+
+                                if (columnaA.match(new RegExp(`FASE ${faseABuscar}`, 'i')) &&
+                                    valorTiempo && valorTiempo !== '' && !isNaN(parseFloat(valorTiempo))) {
+                                    setTiempoCierre(parseFloat(valorTiempo) * 1000)
+                                    break
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    console.error('No se encontró la hoja "Tiempos C" en el archivo Excel')
+                }
+
+            } catch (error) {
+                console.error('Error al procesar el archivo Excel:', error)
+            }
+            setShowSpinner(false)
+        }
+
+        reader.onerror = (error) => {
+            console.error('Error al leer el archivo:', error)
+            setShowSpinner(false)
+        }
+
+        reader.readAsArrayBuffer(file)
+    }
+
+    const deleteDocArchivo1 = (e) => {
+        e.preventDefault()
+        setDocArchivo1([])
+        setCorrienteFalla('')
+        setTiempoApertura('')
+        setFase('')
+        setFaseDetectada(false)
+        setErrorFase(false)
+    }
+
+    const deleteDocArchivo2 = (e) => {
+        e.preventDefault()
+        setDocArchivo2([])
+        setNumeroOperaciones('')
+        setErrorNumeroOperaciones(false)
+    }
+
+    const deleteDocArchivo3 = (e) => {
+        e.preventDefault()
+        setDocArchivo3([])
+        setResistenciaContactos('')
+        setTiempoCierre('')
+    }
+
+    const crearMedicion = async (event) => {
+        setShowSpinner(true)
+        event.preventDefault()
+
+        if (!interruptor || !tiempoApertura || !tiempoCierre || !numeroOperaciones ||
+            !corrienteFalla || !resistenciaContactos || !fechaMantenimiento) {
+            setShowAlert(true)
+            setFormError(true)
+            window.scrollTo({top: 0, behavior: 'smooth'})
+            setShowSpinner(false)
+            return
+        }
+
+        try {
+            const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
+
+            const data = {
+                Interruptores_idInterruptores: parseInt(interruptor),
+                numero_operaciones: parseInt(numeroOperaciones),
+                corriente_falla: parseFloat(parseFloat(corrienteFalla).toFixed(6)),
+                tiempo_apertura_A: parseFloat(parseFloat(tiempoApertura).toFixed(6)),
+                tiempo_apertura_B: parseFloat(parseFloat(tiempoApertura).toFixed(6)),
+                tiempo_apertura_C: parseFloat(parseFloat(tiempoApertura).toFixed(6)),
+                tiempo_cierre_A: parseFloat(parseFloat(tiempoCierre).toFixed(6)),
+                tiempo_cierre_B: parseFloat(parseFloat(tiempoCierre).toFixed(6)),
+                tiempo_cierre_C: parseFloat(parseFloat(tiempoCierre).toFixed(6)),
+                resistencia_contactos_R: parseFloat(parseFloat(resistenciaContactos).toFixed(6)),
+                resistencia_contactos_S: parseFloat(parseFloat(resistenciaContactos).toFixed(6)),
+                resistencia_contactos_T: parseFloat(parseFloat(resistenciaContactos).toFixed(6)),
+                fecha_mantenimiento: fechaMantenimiento,
+            }
+
+            const response = await createMedidasInterruptores(user.token, data)
+
+            setTitle('Medición Registrada')
+            setSubTitle('ID: ' + response.id_alerta)
+            setMessage(
+                `La medición se registró exitosamente.\n\n` +
+                `Índice Mecánico (I_DM): ${response.I_DM}\n` +
+                `Índice Eléctrico (I_EE): ${response.I_EE}\n` +
+                `Índice de Salud (I_M): ${response.I_M}\n` +
+                `Condición: ${response.condicion}`
+            )
+
+            limpiarFormulario()
+        } catch (e) {
+            setTitle('Error')
+            setSubTitle('')
+            if (e.response?.data?.error?.name === 'TokenExpiredError') {
+                logOut()
+            }
+            setMessage('No puedes realizar esta acción.')
+        }
+        setShow(true)
+        setShowSpinner(false)
+    }
+
+    const limpiarFormulario = () => {
+        setInterruptor('')
+        setTiempoApertura('')
+        setTiempoCierre('')
+        setNumeroOperaciones('')
+        setCorrienteFalla('')
+        setResistenciaContactos('')
+        setFechaMantenimiento('')
+        setFase('')
+        setFaseDetectada(false)
+        setDocArchivo1([])
+        setDocArchivo2([])
+        setDocArchivo3([])
+        setErrorFase(false)
+        setErrorNumeroOperaciones(false)
+        setFormError(false)
+        setShowAlert(false)
+        window.scrollTo({top: 0, behavior: 'smooth'})
+    }
+
+    const handleConfirmSubmit = (text) => {
+        if (text === 'Cancel') {
+            nav('/alertasInterruptores')
+        }
+
+        if (text === 'Acept') {
+            setShow(false)
         }
     }
 
-    const loadFileCorrienteFalla = (list) => {
-        setShowSpinner(true)
-        setDocCorriente((prevList) => [...prevList, ...list])
-        const file = list[0]
-        if (file) {
-            const reader = new FileReader()
-
-            reader.onload = (event) => {
-                try {
-                    const csvData = event.target.result;
-
-                    const dfWithHeaders = csvParse(csvData);
-
-                    // Filtrar filas con 'Circuit breaker 1:Circuit break.' en 'Functions structure'
-                    const filasCircuitBreaker = dfWithHeaders.filter(row => row['Functions structure'] === 'Circuit breaker 1:Circuit break.');
-
-                    if (filasCircuitBreaker.length === 0) {
-                        setError("No se encontraron filas con 'Circuit breaker 1:Circuit break.' en 'Functions structure'.")
-                        setShowSpinner(false)
-                        return
-                    }
-
-                    // Extraer y filtrar los valores que terminan en 'A'
-                    const valoresAmperios = filasCircuitBreaker
-                        .map(row => row['Value'])
-                        .filter(value => typeof value === 'string' && value.trim().endsWith('A'))
-                        .map(value => parseFloat(value.split(' ')[0])) // Extraer solo el número antes de la 'A'
-                        .filter(value => !isNaN(value)); // Filtrar valores no numéricos
-
-                    if (valoresAmperios.length === 0) {
-                        setError("No se encontraron valores válidos en amperios ('A').")
-                        setShowSpinner(false)
-                        return
-                    }
-
-                    // Encontrar el valor máximo en amperios
-                    const maxAmperio = Math.max(...valoresAmperios);
-
-                    // Actualizar el estado con el valor máximo encontrado
-                    setCorrienteFalla(maxAmperio);
-                    setError(null)
-                } catch (error) {
-                    setError("Asegúrate de que sea un archivo CSV válido.")
-                } finally {
-                    setShowSpinner(false)
-                }
-            };
-
-            reader.onerror = () => {
-                setError("No se pudo leer el archivo. Asegúrate de que sea un archivo CSV válido.");
-                setShowSpinner(false)
-            };
-
-            reader.readAsText(file);
-        } else {
-            setShowSpinner(false);
-        }
+    const showCancelModal = (event) => {
+        event.preventDefault()
+        setShow(true)
+        setTitle('Cancelar Medición')
+        setSubTitle('')
+        setMessage('¿Estás seguro de que deseas cancelar el registro de medición?')
     }
 
     return (
-        <DivForm className="newReportContent">
+        <DivForm className='newReportContent'>
             <Col xs={12} className={'formBackground'}>
                 <Container>
-                    <StyledForm onSubmit={createMeasurement}>
-                        {showAlert && (<Alert variant="danger" onClose={() => setShowAlert(false)} dismissible
-                                              className="alert-center">
-                            <p>Por favor complete todos los campos del formulario.</p>
-                        </Alert>)}
-
-                        {error && (
-                            <Alert variant="danger" onClose={() => setError(null)} dismissible className="alert-center">
-                                <p>Error al cargar el archivo: {error}</p>
-                            </Alert>)}
-
+                    <StyledForm onSubmit={crearMedicion}>
+                        {
+                            showAlert ? (
+                                    <Alert
+                                        variant="danger"
+                                        onClose={() => setShowAlert(false)}
+                                        dismissible
+                                        className='alert-center'
+                                    >
+                                        <p>
+                                            Por favor diligencie todos los campos del formulario.
+                                        </p>
+                                    </Alert>
+                                ) :
+                                (<></>)
+                        }
+                        {
+                            errorFase ? (
+                                    <Alert
+                                        variant="danger"
+                                        onClose={() => setErrorFase(false)}
+                                        dismissible
+                                        className='alert-center'
+                                    >
+                                        <p>
+                                            No se logró obtener la fase del archivo CSV. Por favor, verifique que el archivo contenga datos válidos con información de fase (phs A, B o C).
+                                        </p>
+                                    </Alert>
+                                ) :
+                                (<></>)
+                        }
+                        {
+                            errorNumeroOperaciones ? (
+                                    <Alert
+                                        variant="danger"
+                                        onClose={() => setErrorNumeroOperaciones(false)}
+                                        dismissible
+                                        className='alert-center'
+                                    >
+                                        <p>
+                                            No se encontró medición del número de operaciones para el dispositivo seleccionado en el archivo Excel. Por favor, verifique que el archivo contenga la hoja "BASE" y que existan datos del dispositivo en las columnas de operaciones.
+                                        </p>
+                                    </Alert>
+                                ) :
+                                (<></>)
+                        }
                         <Row xs={12}>
-                            <Col xs={12} md={4} id='fileTiempos'>
+                            <Col xs={12} md={4}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Cargar Archivo de Tiempos</RequiredLabel>
+                                    <RequiredLabel>Archivo Corriente falla y tiempo de apertura</RequiredLabel>
                                 </Col>
                                 {
-                                    docTiempos.length > 0 ? (
+                                    docArchivo1.length > 0 ? (
                                         <>
-                                            <TitleReport>Ya se Cargaron los Datos</TitleReport>
-                                            <SButton onClick={deleteDocTiempos}>
+                                            <TitleReport>Ya se Cargó el Archivo</TitleReport>
+                                            <SButton onClick={deleteDocArchivo1}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                                      viewBox="0 0 24 24" fill="none">
                                                     <path
@@ -447,20 +831,20 @@ export const NewMedidasInterruptor = () => {
                                         </>
                                     ) : (
                                         <Col xs={12}>
-                                            <DropZone id='fileTiempos' loadFile={loadFileTiempos} type={'.xlsx'}/>
+                                            <DropZone id={'fileArchivo1'} loadFile={loadFileArchivo1} type={'.xlsx,.csv'}/>
                                         </Col>
                                     )
                                 }
                             </Col>
-                            <Col xs={12} md={4} id='fileOperaciones'>
+                            <Col xs={12} md={4} style={{opacity: archivos2y3Habilitados ? 1 : 0.5, pointerEvents: archivos2y3Habilitados ? 'auto' : 'none'}}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Cargar Archivo de Operaciones</RequiredLabel>
+                                    <RequiredLabel>Archivo Numero de operaciones</RequiredLabel>
                                 </Col>
                                 {
-                                    docOperaciones.length > 0 ? (
+                                    docArchivo2.length > 0 ? (
                                         <>
-                                            <TitleReport>Ya se Cargaron los Datos</TitleReport>
-                                            <SButton onClick={deleteDocOperaciones}>
+                                            <TitleReport>Ya se Cargó el Archivo</TitleReport>
+                                            <SButton onClick={deleteDocArchivo2}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                                      viewBox="0 0 24 24" fill="none">
                                                     <path
@@ -471,20 +855,29 @@ export const NewMedidasInterruptor = () => {
                                         </>
                                     ) : (
                                         <Col xs={12}>
-                                            <DropZone id='fileOperaciones' loadFile={loadFileOperaciones}type={'.xlsx'}/>
+                                            <DropZone id={'fileArchivo2'} loadFile={loadFileArchivo2} type={'.xlsx,.csv'} disabled={!archivos2y3Habilitados}/>
                                         </Col>
                                     )
                                 }
+                                {!archivos2y3Habilitados && (
+                                    <small style={{color: '#6c757d', fontSize: '0.85rem', marginTop: '5px', display: 'block'}}>
+                                        {!faseDetectada && !interruptor
+                                            ? 'Debe cargar el archivo 1 con fase válida y seleccionar un interruptor'
+                                            : !faseDetectada
+                                                ? 'Debe cargar el archivo 1 con una fase válida'
+                                                : 'Debe seleccionar un interruptor'}
+                                    </small>
+                                )}
                             </Col>
-                            <Col xs={12} md={4} id='fileCorrienteFalla'>
+                            <Col xs={12} md={4} style={{opacity: archivos2y3Habilitados ? 1 : 0.5, pointerEvents: archivos2y3Habilitados ? 'auto' : 'none'}}>
                                 <Col xs={12}>
-                                    <RequiredLabel>Cargar Archivo de Corriente</RequiredLabel>
+                                    <RequiredLabel>Archivo Resistencia de contactos</RequiredLabel>
                                 </Col>
                                 {
-                                    docCorriente.length > 0 ? (
+                                    docArchivo3.length > 0 ? (
                                         <>
-                                            <TitleReport>Ya se Cargaron los Datos</TitleReport>
-                                            <SButton onClick={deleteDocCorriente}>
+                                            <TitleReport>Ya se Cargó el Archivo</TitleReport>
+                                            <SButton onClick={deleteDocArchivo3}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                                      viewBox="0 0 24 24" fill="none">
                                                     <path
@@ -495,88 +888,177 @@ export const NewMedidasInterruptor = () => {
                                         </>
                                     ) : (
                                         <Col xs={12}>
-                                            <DropZone id='fileCorrienteFalla' loadFile={loadFileCorrienteFalla}type={'.csv'}/>
+                                            <DropZone id={'fileArchivo3'} loadFile={loadFileArchivo3} type={'.xlsx,.csv'} disabled={!archivos2y3Habilitados}/>
                                         </Col>
                                     )
                                 }
+                                {!archivos2y3Habilitados && (
+                                    <small style={{color: '#6c757d', fontSize: '0.85rem', marginTop: '5px', display: 'block'}}>
+                                        {!faseDetectada && !interruptor
+                                            ? 'Debe cargar el archivo 1 con fase válida y seleccionar un interruptor'
+                                            : !faseDetectada
+                                                ? 'Debe cargar el archivo 1 con una fase válida'
+                                                : 'Debe seleccionar un interruptor'}
+                                    </small>
+                                )}
                             </Col>
                         </Row>
-
+                        <hr></hr>
                         <Row xs={12}>
-                            <Col xs={12} md={6}>
-                                <RequiredLabel>Interruptor</RequiredLabel>
-                                <StyledFormSelect value={interruptor}
-                                                  onChange={({target}) => setInterruptor(target.value)}>
-                                    <option value="">Seleccione un interruptor</option>
-                                    {loadingInterruptores ?
-                                        <option disabled>Cargando...</option> : interruptores.map(item => (
-                                            <option key={item.idinterruptores}
-                                                    value={item.idinterruptores}>{item.nombre}</option>
-                                        ))}
-                                </StyledFormSelect>
+                            <Col xs={12} md={6} className={`${!interruptor && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Interruptor</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <StyledFormSelect
+                                        aria-label="Default select example"
+                                        value={interruptor}
+                                        name='interruptor'
+                                        placeholder='Interruptor'
+                                        onChange={({target}) => setInterruptor(target.value)}
+                                    >
+                                        <option value=""></option>
+                                        {loadingInterruptores ? (
+                                            <option disabled>Cargando...</option>
+                                        ) : (
+                                            interruptores.map((item) => (
+                                                <option key={item.idinterruptores} value={item.idinterruptores}>
+                                                    {item.nombre}
+                                                </option>
+                                            ))
+                                        )}
+                                    </StyledFormSelect>
+                                </Col>
                             </Col>
                         </Row>
-
                         <Row xs={12}>
-                            <Col xs={6} md={4} className={`${!numeroOperaciones && formError ? 'errorForm' : ''}`}>
-                                <RequiredLabel>Número de Operaciones</RequiredLabel>
-                                <InputForm type="number" value={numeroOperaciones}
-                                           onChange={({target}) => setNumeroOperaciones(target.value)}/>
+                            <Col xs={12} md={6} className={`${!tiempoApertura && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Ingrese el tiempo de apertura (ms)</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        step='0.01'
+                                        value={tiempoApertura}
+                                        name='tiempoApertura'
+                                        placeholder='Tiempo en milisegundos'
+                                        onChange={({target}) => setTiempoApertura(target.value)}
+                                    />
+                                </Col>
                             </Col>
-                            <Col xs={6} md={4} className={`${!corrienteFalla && formError ? 'errorForm' : ''}`}>
-                                <RequiredLabel>Corriente de Falla (A)</RequiredLabel>
-                                <InputForm type="number" step="0.001" value={corrienteFalla}
-                                           onChange={({target}) => setCorrienteFalla(target.value)}/>
+                            <Col xs={12} md={6} className={`${!tiempoCierre && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Ingrese el tiempo de cierre (ms)</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        step='0.01'
+                                        value={tiempoCierre}
+                                        name='tiempoCierre'
+                                        placeholder='Tiempo en milisegundos'
+                                        onChange={({target}) => setTiempoCierre(target.value)}
+                                    />
+                                </Col>
                             </Col>
                         </Row>
                         <Row xs={12}>
-                            <Col xs={4}><RequiredLabel>Tiempo Apertura A (ms)</RequiredLabel><InputForm
-                                value={tiempoAperturaA}
-                                onChange={({target}) => setTiempoAperturaA(target.value)}/></Col>
-                            <Col xs={4}><RequiredLabel>Tiempo Apertura B (ms)</RequiredLabel><InputForm
-                                value={tiempoAperturaB}
-                                onChange={({target}) => setTiempoAperturaB(target.value)}/></Col>
-                            <Col xs={4}><RequiredLabel>Tiempo Apertura C (ms)</RequiredLabel><InputForm
-                                value={tiempoAperturaC}
-                                onChange={({target}) => setTiempoAperturaC(target.value)}/></Col>
+                            <Col xs={12} md={6} className={`${!numeroOperaciones && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Ingrese el número de operaciones</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        value={numeroOperaciones}
+                                        name='numeroOperaciones'
+                                        placeholder='Número de operaciones'
+                                        onChange={({target}) => setNumeroOperaciones(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={12} md={6} className={`${!corrienteFalla && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Ingrese la corriente de falla (A)</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        step='0.01'
+                                        value={corrienteFalla}
+                                        name='corrienteFalla'
+                                        placeholder='Corriente en A'
+                                        onChange={({target}) => setCorrienteFalla(target.value)}
+                                    />
+                                </Col>
+                            </Col>
                         </Row>
-
                         <Row xs={12}>
-                            <Col xs={4}><RequiredLabel>Tiempo Cierre A (ms)</RequiredLabel><InputForm
-                                value={tiempoCierreA} onChange={({target}) => setTiempoCierreA(target.value)}/></Col>
-                            <Col xs={4}><RequiredLabel>Tiempo Cierre B (ms)</RequiredLabel><InputForm
-                                value={tiempoCierreB} onChange={({target}) => setTiempoCierreB(target.value)}/></Col>
-                            <Col xs={4}><RequiredLabel>Tiempo Cierre C (ms)</RequiredLabel><InputForm
-                                value={tiempoCierreC} onChange={({target}) => setTiempoCierreC(target.value)}/></Col>
+                            <Col xs={12} md={6} className={`${!resistenciaContactos && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Ingrese la resistencia de contactos (Ω)</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='number'
+                                        step='0.01'
+                                        value={resistenciaContactos}
+                                        name='resistenciaContactos'
+                                        placeholder='Resistencia en Ω'
+                                        onChange={({target}) => setResistenciaContactos(target.value)}
+                                    />
+                                </Col>
+                            </Col>
+                            <Col xs={12} md={6} className={`${!fechaMantenimiento && formError ? 'errorForm' : ''}`}>
+                                <Col xs={12}>
+                                    <RequiredLabel>Ingrese la fecha del último mantenimiento</RequiredLabel>
+                                </Col>
+                                <Col xs={12}>
+                                    <InputForm
+                                        type='date'
+                                        value={fechaMantenimiento}
+                                        name='fechaMantenimiento'
+                                        onChange={({target}) => setFechaMantenimiento(target.value)}
+                                    />
+                                </Col>
+                            </Col>
                         </Row>
-
+                        <br></br>
                         <Row xs={12}>
-                            <Col xs={4}><RequiredLabel>Resistencia Contactos R (mΩ)</RequiredLabel><InputForm
-                                value={resistenciaContactosR}
-                                onChange={({target}) => setResistenciaContactosR(target.value)}/></Col>
-                            <Col xs={4}><RequiredLabel>Resistencia Contactos S (mΩ)</RequiredLabel><InputForm
-                                value={resistenciaContactosS}
-                                onChange={({target}) => setResistenciaContactosS(target.value)}/></Col>
-                            <Col xs={4}><RequiredLabel>Resistencia Contactos T (mΩ)</RequiredLabel><InputForm
-                                value={resistenciaContactosT}
-                                onChange={({target}) => setResistenciaContactosT(target.value)}/></Col>
-                        </Row>
-
-                        <Row xs={12}>
-                            <Col xs={12} md={3}>
+                            <Col xs={0} lg={3}>
+                            </Col>
+                            <Col xs={12} lg={3}>
                                 <SButton onClick={showCancelModal}>Cancelar</SButton>
                             </Col>
-                            <Col xs={12} md={3}>
-                                <PButton type="submit">Enviar</PButton>
+                            <Col xs={12} lg={3}>
+                                <PButton>Registrar Medición</PButton>
+                            </Col>
+                            <Col xs={0} lg={3}>
                             </Col>
                         </Row>
                     </StyledForm>
                 </Container>
             </Col>
+            <CancelAceptModal
+                showModal={show}
+                handleCloseModal={handleCloseModal}
+                title={title}
+                message={message}
+                handleConfirmSubmit={handleConfirmSubmit}
+                subTitle={subTitle}
+            />
+            {
+                showSpinner ? (
+                        <div className='divSpinner'>
+                            <Spinner/>
+                        </div>
+                    ) :
+                    (
+                        <></>
+                    )
+            }
 
-            <CancelAceptModal showModal={show} handleCloseModal={handleCloseModal} title={title} message={message}
-                              handleConfirmSubmit={handleConfirmSubmit} subTitle={subTitle}/>
-            {showSpinner && (<div className="divSpinner"><Spinner/></div>)}
         </DivForm>
-    );
-};
+    )
+}

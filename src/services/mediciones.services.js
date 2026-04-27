@@ -19,7 +19,18 @@ export const getMediciones = async(token) => {
 		}
 	}
 
-	const { data } = await axios.get(url, config) 
+	const { data } = await axios.get(url, config)
+	return data
+}
+
+export const getMedicionesByTransformador = async(token, idTransformador) => {
+	const config = {
+		headers: {
+			authorization: 'Bearer ' + token
+		}
+	}
+
+	const { data } = await axios.get(url + '?id=' + idTransformador, config)
 	return data
 }
 

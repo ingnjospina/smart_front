@@ -10,7 +10,8 @@
 }
 
 .modalAcept .modal-body{
-    height: 100px;
+    min-height: 100px;
+    height: auto;
     display: flex;
     text-align: center;
     flex-direction: column;
