@@ -586,17 +586,23 @@ export const NewMedidasInterruptor = () => {
                     if (closingTimeColIndex !== -1) {
                         const faseMap = { 'A': 'R', 'B': 'S', 'C': 'T' }
 
+                        // Soporta formato viejo (FASE R/S/T) y nuevo (A/B/C directo)
+                        const matchFase = (columnaA, faseLetra) => {
+                            const rst = faseMap[faseLetra] || faseLetra
+                            return columnaA.match(new RegExp(`FASE ${rst}`, 'i')) ||
+                                   columnaA === faseLetra
+                        }
+
                         if (fase === 'G') {
                             const valoresFases = []
-                            const fasesABuscar = ['R', 'S', 'T']
 
-                            fasesABuscar.forEach(f => {
+                            ;['A', 'B', 'C'].forEach(f => {
                                 for (let i = 0; i < dataTiempos.length; i++) {
                                     const row = dataTiempos[i]
                                     const columnaA = row[0] ? row[0].toString().trim() : ''
                                     const valorTiempo = row[closingTimeColIndex]
 
-                                    if (columnaA.match(new RegExp(`FASE ${f}`, 'i')) &&
+                                    if (matchFase(columnaA, f) &&
                                         valorTiempo && valorTiempo !== '' && !isNaN(parseFloat(valorTiempo))) {
                                         valoresFases.push(parseFloat(valorTiempo))
                                     }
@@ -609,14 +615,12 @@ export const NewMedidasInterruptor = () => {
                             }
 
                         } else {
-                            const faseABuscar = faseMap[fase] || fase
-
                             for (let i = 0; i < dataTiempos.length; i++) {
                                 const row = dataTiempos[i]
                                 const columnaA = row[0] ? row[0].toString().trim() : ''
                                 const valorTiempo = row[closingTimeColIndex]
 
-                                if (columnaA.match(new RegExp(`FASE ${faseABuscar}`, 'i')) &&
+                                if (matchFase(columnaA, fase) &&
                                     valorTiempo && valorTiempo !== '' && !isNaN(parseFloat(valorTiempo))) {
                                     setTiempoCierre(parseFloat(valorTiempo) * 1000)
                                     break
