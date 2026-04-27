@@ -566,8 +566,8 @@ export const NewMedidasInterruptor = () => {
                     console.error('No se encontró la hoja "Contact Resistance" en el archivo Excel')
                 }
 
-                if (workbook.SheetNames.includes('Tiempos C')) {
-                    const worksheetTiempos = workbook.Sheets['Tiempos C']
+                if (workbook.SheetNames.includes('C Timing')) {
+                    const worksheetTiempos = workbook.Sheets['C Timing']
                     const dataTiempos = XLSX.utils.sheet_to_json(worksheetTiempos, { header: 1, defval: '' })
 
                     let closingTimeColIndex = -1
@@ -625,7 +625,7 @@ export const NewMedidasInterruptor = () => {
                         }
                     }
                 } else {
-                    console.error('No se encontró la hoja "Tiempos C" en el archivo Excel')
+                    console.error('No se encontró la hoja "C Timing" en el archivo Excel')
                 }
 
             } catch (error) {
