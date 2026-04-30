@@ -6,7 +6,7 @@ import { NewTransfo } from '../forms/newTransfo'
 export const NewTransformer = () => {
 	return (
 		<div className="peticion-container">
-			<Sidebar title={'Medición de Transformador'}/>
+			<Sidebar title={'Crear transformador'}/>
 			<Container>
 				<div className='dash'>
 					<NewTransfo  tipo={'TRANSFORMADOR'} />

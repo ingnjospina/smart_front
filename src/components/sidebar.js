@@ -61,6 +61,9 @@ export const Sidebar = ({title}) => {
                         {user.Nombres}
                     </p>
                 </div>
+                <div className='role'>
+                    <p>{user.rol}</p>
+                </div>
                 <ul>
                     <hr></hr>
                     <p>Alertas</p>

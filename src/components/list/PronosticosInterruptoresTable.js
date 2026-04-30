@@ -13,7 +13,7 @@ import {
     StyledTD,
     StyledTH
 } from '../tools/styleContent'
-import {getPronosticos} from '../../services/pronostico.services'
+import {getPronosticos, sendPronosticoInterruptorEmail} from '../../services/pronostico.services'
 import {getInterruptores} from '../../services/interruptor.services'
 import {Spinner} from '../tools/spinner'
 import {UseLogout2} from '../../hooks/useLogout2'
@@ -29,12 +29,32 @@ export const PronosticosInterruptoresTable = () => {
     const [fechaDesde, setFechaDesde] = useState('')
     const [fechaHasta, setFechaHasta] = useState('')
 
+    const [sendingEmail, setSendingEmail] = useState(null)
+
     // Estado para el modal de detalle
     const [show, setShow] = useState(false)
-    const [title] = useState('')
-    const [message] = useState('')
+    const [title, setTitle] = useState('')
+    const [message, setMessage] = useState('')
 
     const handleCloseModal = () => setShow(false)
+
+    const handleSendEmail = async (pronosticoId) => {
+        try {
+            setSendingEmail(pronosticoId)
+            const user = JSON.parse(window.localStorage.getItem('loggedAppUser'))
+            const response = await sendPronosticoInterruptorEmail(user.token, pronosticoId)
+            setTitle('Correo Enviado')
+            setMessage(response.message || 'El correo ha sido enviado exitosamente.')
+            setShow(true)
+        } catch (error) {
+            console.error('Error al enviar correo:', error)
+            setTitle('Error')
+            setMessage(error.response?.data?.message || 'Error al enviar el correo.')
+            setShow(true)
+        } finally {
+            setSendingEmail(null)
+        }
+    }
 
     useEffect(() => {
         const fetchData = async () => {
@@ -234,6 +254,7 @@ export const PronosticosInterruptoresTable = () => {
                             <StyledTH>Fecha Último Mant.</StyledTH>
                             <StyledTH>Fecha Rec. Mantenimiento</StyledTH>
                             <StyledTH>Fecha Creación</StyledTH>
+                            <StyledTH>Acciones</StyledTH>
                         </tr>
                         </thead>
                         <tbody>
@@ -250,8 +271,27 @@ export const PronosticosInterruptoresTable = () => {
                                 <StyledTD>{item.pronostico.fecha_mantenimiento}</StyledTD>
                                 <StyledTD>{item.pronostico.fecha_recomendada ?? '—'}</StyledTD>
                                 <StyledTD>{new Date(item.pronostico.fecha_creacion).toLocaleString()}</StyledTD>
+                                <StyledTD>
+                                    <button
+                                        onClick={() => handleSendEmail(item.pronostico.idpronostico)}
+                                        disabled={sendingEmail === item.pronostico.idpronostico}
+                                        title="Enviar por correo"
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: sendingEmail === item.pronostico.idpronostico ? 'not-allowed' : 'pointer',
+                                            padding: '4px',
+                                            opacity: sendingEmail === item.pronostico.idpronostico ? 0.5 : 1
+                                        }}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#495057" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                            <polyline points="22,6 12,13 2,6"></polyline>
+                                        </svg>
+                                    </button>
+                                </StyledTD>
                             </tr>
-                        )) : <tr><StyledTD colSpan="11" className="text-center">No hay pronósticos disponibles.</StyledTD>
+                        )) : <tr><StyledTD colSpan="12" className="text-center">No hay pronósticos disponibles.</StyledTD>
                         </tr>}
                         </tbody>
                     </Table>

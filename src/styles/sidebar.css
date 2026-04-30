@@ -86,7 +86,24 @@
   .sidebar .name {
     justify-content: center;
     display: flex;
+    margin-bottom: 4px;
+  }
+
+  .sidebar .role {
+    justify-content: center;
+    display: flex;
     margin-bottom: 30px;
+  }
+
+  .sidebar .role p {
+    color: #99ABB4;
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    background-color: #f0f2f4;
+    border-radius: 12px;
+    padding: 2px 10px;
   }
 
   .sidebar .name p{
