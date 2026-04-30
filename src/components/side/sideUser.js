@@ -96,6 +96,14 @@ export const SideUser = () => {
                     Transformador
                 </StyledLink>
             </StyledLi>
+            <StyledLi>
+                <StyledLink to='/viewMeasurementInterruptor'>
+                    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 5H14V9H2V5ZM2 11H14V15H2V11ZM16 5H17V9H16V5ZM16 11H17V15H16V11Z" fill="#E40613"/>
+                    </svg>
+                    Interruptor
+                </StyledLink>
+            </StyledLi>
             <hr></hr>
         </>
     )

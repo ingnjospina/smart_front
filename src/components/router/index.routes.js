@@ -16,7 +16,8 @@ import {MedidasInterruptor} from "../pages/medidasInterruptor";
 import {PronosticoTransformador} from "../pages/pronosticoTransformador";
 import {PronosticoInterruptor} from "../pages/pronosticoInterruptor";
 import {PronosticosTransformadores} from "../pages/PronosticosTransformadores";
-import {PronosticosInterruptores} from "../pages/PronosticosInterruptores";
+import {PronosticosInterruptores} from "../pages/PronosticosInterruptores"
+import {SearchMeasurementInterruptor} from "../pages/searchMeasurementInterruptor";
 
 export const IndexRoutes = () => {
 
@@ -136,6 +137,14 @@ export const IndexRoutes = () => {
             <Route path='/pronosticosInterruptores' element={
                 user ? (
                     <PronosticosInterruptores/>
+                ) : (
+                    <Navigate to="/signin" replace/>
+                )
+            }/>
+
+            <Route path='/viewMeasurementInterruptor' element={
+                user ? (
+                    <SearchMeasurementInterruptor/>
                 ) : (
                     <Navigate to="/signin" replace/>
                 )

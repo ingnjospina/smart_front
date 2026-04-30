@@ -81,6 +81,15 @@ export const getAlertasInterruptores = async (token, queryParams = "") => {
     }
 };
 
+export const getMedicionesInterruptores = async (token, idInterruptor = '') => {
+    const config = { headers: { authorization: 'Bearer ' + token } }
+    const endpoint = idInterruptor
+        ? `${url}mediciones/?idInterruptor=${idInterruptor}`
+        : `${url}mediciones/`
+    const { data } = await axios.get(endpoint, config)
+    return data
+}
+
 export const getMedicionesByInterruptor = async (token, id) => {
     const config = { headers: { authorization: 'Bearer ' + token } }
     const { data } = await axios.get(`${url}mediciones/${id}/`, config)
