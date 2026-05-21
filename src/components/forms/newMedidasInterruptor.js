@@ -276,66 +276,62 @@ export const NewMedidasInterruptor = () => {
                     setErrorFase(false)
                 }
 
-                const definitiveTrips = data.filter(row =>
+                const parseRelativeTime = (timeStr) => {
+                    if (!timeStr) return 0
+                    const isNegative = timeStr.startsWith('-')
+                    const cleanStr = timeStr.replace('-', '')
+                    const parts = cleanStr.split(':')
+                    if (parts.length === 4) {
+                        const seconds = parseFloat(parts[3])
+                        const minutes = parseInt(parts[2]) || 0
+                        const hours = parseInt(parts[1]) || 0
+                        const days = parseInt(parts[0]) || 0
+                        const totalMs = (days * 24 * 60 * 60 * 1000) +
+                                       (hours * 60 * 60 * 1000) +
+                                       (minutes * 60 * 1000) +
+                                       (seconds * 1000)
+                        return isNegative ? -totalMs : totalMs
+                    }
+                    return 0
+                }
+
+                const sortByDateDesc = (a, b) => {
+                    const dateA = new Date(a[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
+                    const dateB = new Date(b[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
+                    return dateB - dateA
+                }
+
+                const tripOnlyPoles = data.filter(row =>
                     row['Functions structure'] &&
                     row['Functions structure'].includes('Circuit Breaker:Circuit break.') &&
-                    row['Name'] &&
-                    row['Name'].includes('Definitive trip')
+                    row['Value'] && row['Value'].toLowerCase() === 'true' &&
+                    row['Name'] && /Trip only pole [ABC]/.test(row['Name'])
                 )
 
-                if (definitiveTrips.length >= 2) {
-                    definitiveTrips.sort((a, b) => {
-                        const dateA = new Date(a[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
-                        const dateB = new Date(b[timestampColumn].replace(/(\d+)\.(\d+)\.(\d+)/, '$3-$2-$1'))
-                        return dateB - dateA
-                    })
+                if (tripOnlyPoles.length > 0) {
+                    tripOnlyPoles.sort(sortByDateDesc)
+                    const tripRecord = tripOnlyPoles[0]
 
-                    const trip1 = definitiveTrips[0]
-                    const trip2 = definitiveTrips[1]
+                    const poleMatch = tripRecord['Name'].match(/Trip only pole ([ABC])/)
+                    if (poleMatch) {
+                        const pole = poleMatch[1]
 
-                    const val1 = trip1['Value'].toLowerCase()
-                    const val2 = trip2['Value'].toLowerCase()
+                        const positionRecords = data.filter(row =>
+                            row['Functions structure'] &&
+                            row['Functions structure'].includes('Circuit Breaker:Circuit break.') &&
+                            row['Value'] && row['Value'] === 'SPN open' &&
+                            row['Name'] && row['Name'].includes(`Position 1-pole phs${pole}`)
+                        )
 
-                    let offRecord, onRecord
+                        if (positionRecords.length > 0) {
+                            positionRecords.sort(sortByDateDesc)
+                            const positionRecord = positionRecords[0]
 
-                    if ((val1 === 'off' || val1 === 'false') && (val2 === 'on' || val2 === 'true')) {
-                        offRecord = trip1
-                        onRecord = trip2
-                    } else if ((val2 === 'off' || val2 === 'false') && (val1 === 'on' || val1 === 'true')) {
-                        offRecord = trip2
-                        onRecord = trip1
-                    }
+                            const tripTimeMs = parseRelativeTime(tripRecord['Relative time'])
+                            const positionTimeMs = parseRelativeTime(positionRecord['Relative time'])
 
-                    if (offRecord && onRecord) {
-                        const offTime = offRecord['Relative time']
-                        const onTime = onRecord['Relative time']
-
-                        const parseRelativeTime = (timeStr) => {
-                            const isNegative = timeStr.startsWith('-')
-                            const cleanStr = timeStr.replace('-', '')
-                            const parts = cleanStr.split(':')
-
-                            if (parts.length === 4) {
-                                const seconds = parseFloat(parts[3])
-                                const minutes = parseInt(parts[2]) || 0
-                                const hours = parseInt(parts[1]) || 0
-                                const days = parseInt(parts[0]) || 0
-
-                                const totalMs = (days * 24 * 60 * 60 * 1000) +
-                                               (hours * 60 * 60 * 1000) +
-                                               (minutes * 60 * 1000) +
-                                               (seconds * 1000)
-
-                                return isNegative ? -totalMs : totalMs
-                            }
-                            return 0
+                            setTiempoApertura(Math.round(positionTimeMs - tripTimeMs))
                         }
-
-                        const offTimeMs = parseRelativeTime(offTime)
-                        const onTimeMs = parseRelativeTime(onTime)
-
-                        const tiempoAperturaMs = Math.abs(offTimeMs - onTimeMs)
-                        setTiempoApertura(Math.round(tiempoAperturaMs))
                     }
                 }
 
@@ -710,7 +706,7 @@ export const NewMedidasInterruptor = () => {
                 `La medición se registró exitosamente.\n\n` +
                 `Índice Mecánico (I_DM): ${response.I_DM}\n` +
                 `Índice Eléctrico (I_EE): ${response.I_EE}\n` +
-                `Índice de Salud (I_M): ${response.I_M}\n` +
+                `Índice general de mantenimiento (I_M): ${response.I_M}\n` +
                 `Condición: ${response.condicion}`
             )
 
