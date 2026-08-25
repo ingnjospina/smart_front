@@ -706,7 +706,7 @@ export const NewMedidasInterruptor = () => {
                 `La medición se registró exitosamente.\n\n` +
                 `Índice Mecánico (I_DM): ${response.I_DM}\n` +
                 `Índice Eléctrico (I_EE): ${response.I_EE}\n` +
-                `Índice general de mantenimiento (I_M): ${response.I_M}\n` +
+                `Índice general de mantenimiento (I_M): ${response.I_M_porcentaje}%\n` +
                 `Condición: ${response.condicion}`
             )
 

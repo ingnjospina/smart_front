@@ -56,6 +56,11 @@ export const ViewMeasurementInterruptor = () => {
         return interruptor ? interruptor.nombre : id
     }
 
+    // I_M se almacena normalizado (0-1) y se muestra como porcentaje de salud.
+    const formatIM = (valor) => (
+        valor === null || valor === undefined ? null : (parseFloat(valor) * 100).toFixed(2)
+    )
+
     const filterData = (e) => {
         e.preventDefault()
         let filtered = medicionesOriginales
@@ -82,7 +87,7 @@ export const ViewMeasurementInterruptor = () => {
         }
 
         const headers = [
-            'ID', 'Interruptor', 'I_DM', 'I_EE', 'I_M',
+            'ID', 'Interruptor', 'I_DM', 'I_EE', 'I_M (%)',
             'Num. Operaciones', 'Corriente Falla',
             'T. Apertura A', 'T. Apertura B', 'T. Apertura C',
             'T. Cierre A', 'T. Cierre B', 'T. Cierre C',
@@ -94,7 +99,7 @@ export const ViewMeasurementInterruptor = () => {
             getNombreInterruptor(m.Interruptores_idInterruptores),
             m.I_DM ?? 'N/A',
             m.I_EE ?? 'N/A',
-            m.I_M ?? 'N/A',
+            formatIM(m.I_M) ?? 'N/A',
             m.numero_operaciones,
             m.corriente_falla,
             m.tiempo_apertura_A,
@@ -203,7 +208,7 @@ export const ViewMeasurementInterruptor = () => {
                                 <StyledTH>Interruptor</StyledTH>
                                 <StyledTH>I_DM</StyledTH>
                                 <StyledTH>I_EE</StyledTH>
-                                <StyledTH>I_M</StyledTH>
+                                <StyledTH>I_M (%)</StyledTH>
                                 <StyledTH>Num. Operaciones</StyledTH>
                                 <StyledTH>Corriente Falla</StyledTH>
                                 <StyledTH>T. Apertura A</StyledTH>
@@ -224,7 +229,7 @@ export const ViewMeasurementInterruptor = () => {
                                     <StyledTD>{getNombreInterruptor(m.Interruptores_idInterruptores)}</StyledTD>
                                     <StyledTD>{m.I_DM ?? '—'}</StyledTD>
                                     <StyledTD>{m.I_EE ?? '—'}</StyledTD>
-                                    <StyledTD>{m.I_M ?? '—'}</StyledTD>
+                                    <StyledTD>{formatIM(m.I_M) ?? '—'}</StyledTD>
                                     <StyledTD>{m.numero_operaciones}</StyledTD>
                                     <StyledTD>{m.corriente_falla}</StyledTD>
                                     <StyledTD>{m.tiempo_apertura_A}</StyledTD>

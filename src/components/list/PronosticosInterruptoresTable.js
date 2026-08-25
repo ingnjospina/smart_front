@@ -38,6 +38,11 @@ export const PronosticosInterruptoresTable = () => {
 
     const handleCloseModal = () => setShow(false)
 
+    // I_M se almacena normalizado (0-1) y se muestra como porcentaje de salud.
+    const formatIM = (valor) => (
+        valor === null || valor === undefined ? null : (parseFloat(valor) * 100).toFixed(2)
+    )
+
     const handleSendEmail = async (pronosticoId) => {
         try {
             setSendingEmail(pronosticoId)
@@ -148,8 +153,8 @@ export const PronosticosInterruptoresTable = () => {
         }
 
         // Crear encabezados del CSV
-        const headers = ['ID', 'Interruptor', 'I_DM', 'I_EE', 'I_M (actual)',
-                        'I_M (anterior)', 'ΔIM', 'Pmant (%)', 'Fecha Último Mant.', 'Fecha Rec. Mantenimiento', 'Fecha Creación']
+        const headers = ['ID', 'Interruptor', 'I_DM', 'I_EE', 'I_M actual (%)',
+                        'I_M anterior (%)', 'ΔIM (puntos %)', 'Pmant (%)', 'Fecha Último Mant.', 'Fecha Rec. Mantenimiento', 'Fecha Creación']
 
         // Crear filas con los datos filtrados
         const rows = pronosticos.map(item => [
@@ -157,9 +162,9 @@ export const PronosticosInterruptoresTable = () => {
             item.equipo ? item.equipo.nombre : 'N/A',
             item.pronostico.I_DM ?? 'N/A',
             item.pronostico.I_EE ?? 'N/A',
-            item.pronostico.I_M ?? 'N/A',
-            item.pronostico.I_M_prev ?? 'N/A',
-            item.pronostico.delta_IM ?? 'N/A',
+            formatIM(item.pronostico.I_M) ?? 'N/A',
+            formatIM(item.pronostico.I_M_prev) ?? 'N/A',
+            formatIM(item.pronostico.delta_IM) ?? 'N/A',
             item.pronostico.Pmant != null ? (parseFloat(item.pronostico.Pmant) * 100).toFixed(2) : 'N/A',
             item.pronostico.fecha_mantenimiento,
             item.pronostico.fecha_recomendada ?? 'N/A',
@@ -247,9 +252,9 @@ export const PronosticosInterruptoresTable = () => {
                             <StyledTH>Interruptor</StyledTH>
                             <StyledTH>I_DM</StyledTH>
                             <StyledTH>I_EE</StyledTH>
-                            <StyledTH>I_M actual</StyledTH>
-                            <StyledTH>I_M anterior</StyledTH>
-                            <StyledTH>ΔIM</StyledTH>
+                            <StyledTH>I_M actual (%)</StyledTH>
+                            <StyledTH>I_M anterior (%)</StyledTH>
+                            <StyledTH>ΔIM (puntos %)</StyledTH>
                             <StyledTH>Pmant (%)</StyledTH>
                             <StyledTH>Fecha Último Mant.</StyledTH>
                             <StyledTH>Fecha Rec. Mantenimiento</StyledTH>
@@ -264,9 +269,9 @@ export const PronosticosInterruptoresTable = () => {
                                 <StyledTD>{item.equipo ? item.equipo.nombre : 'N/A'}</StyledTD>
                                 <StyledTD>{item.pronostico.I_DM ?? '—'}</StyledTD>
                                 <StyledTD>{item.pronostico.I_EE ?? '—'}</StyledTD>
-                                <StyledTD>{item.pronostico.I_M ?? '—'}</StyledTD>
-                                <StyledTD>{item.pronostico.I_M_prev ?? '—'}</StyledTD>
-                                <StyledTD>{item.pronostico.delta_IM ?? '—'}</StyledTD>
+                                <StyledTD>{formatIM(item.pronostico.I_M) ?? '—'}</StyledTD>
+                                <StyledTD>{formatIM(item.pronostico.I_M_prev) ?? '—'}</StyledTD>
+                                <StyledTD>{formatIM(item.pronostico.delta_IM) ?? '—'}</StyledTD>
                                 <StyledTD>{item.pronostico.Pmant != null ? (parseFloat(item.pronostico.Pmant) * 100).toFixed(2) : '—'}</StyledTD>
                                 <StyledTD>{item.pronostico.fecha_mantenimiento}</StyledTD>
                                 <StyledTD>{item.pronostico.fecha_recomendada ?? '—'}</StyledTD>

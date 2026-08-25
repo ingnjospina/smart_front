@@ -137,7 +137,7 @@ export const AlertasInterruptoresTable = () => {
         }
 
         // Crear encabezados del CSV
-        const headers = ['ID', 'Interruptor', 'Valor Medición', 'Tipo Alerta', 'Condición', 'Recomendación', 'Fecha Medición', 'Fecha Último Mant.']
+        const headers = ['ID', 'Interruptor', 'Valor Medición (%)', 'Tipo Alerta', 'Condición', 'Recomendación', 'Fecha Medición', 'Fecha Último Mant.']
 
         // Crear filas con los datos filtrados
         const rows = alertas.map(alerta => [
@@ -248,7 +248,7 @@ export const AlertasInterruptoresTable = () => {
                         <tr>
                             <StyledTH>ID</StyledTH>
                             <StyledTH>Interruptor</StyledTH>
-                            <StyledTH>Valor Medición</StyledTH>
+                            <StyledTH>Valor Medición (%)</StyledTH>
                             <StyledTH>Tipo Alerta</StyledTH>
                             <StyledTH>Condición</StyledTH>
                             <StyledTH>Recomendación</StyledTH>

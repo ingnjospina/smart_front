@@ -46,6 +46,11 @@ export const NewPronosticoInterruptor = () => {
 
     const handleCloseModal = () => setShow(false)
 
+    // I_M se almacena normalizado (0-1) y se muestra como porcentaje de salud.
+    const formatIM = (valor) => (
+        valor === null || valor === undefined ? null : (parseFloat(valor) * 100).toFixed(2)
+    )
+
     useEffect(() => {
         const fetchInterruptores = async () => {
             try {
@@ -105,7 +110,7 @@ export const NewPronosticoInterruptor = () => {
             setTitle('Pronóstico Realizado')
             setSubTitle('ID: ' + response.data.idpronostico)
             setMessage(
-                `Pmant: ${response.data.Pmant}% | I_M: ${response.data.I_M} | ΔIM: ${response.data.delta_IM}\nFecha recomendada de mantenimiento: ${response.data.fecha_recomendada}`
+                `Pmant: ${response.data.Pmant}% | I_M: ${formatIM(response.data.I_M)}% | ΔIM: ${formatIM(response.data.delta_IM)} puntos %\nFecha recomendada de mantenimiento: ${response.data.fecha_recomendada}`
             )
         } catch (e) {
             setIsSuccess(false)
@@ -212,7 +217,7 @@ export const NewPronosticoInterruptor = () => {
                                                         <th>ID Medición</th>
                                                         <th>I_DM</th>
                                                         <th>I_EE</th>
-                                                        <th>I_M (Salud)</th>
+                                                        <th>I_M (% salud)</th>
                                                         <th>N° Operaciones</th>
                                                     </tr>
                                                 </thead>
@@ -224,7 +229,7 @@ export const NewPronosticoInterruptor = () => {
                                                                 <td>{m.idMediciones_Interruptores}</td>
                                                                 <td>{m.I_DM ?? '—'}</td>
                                                                 <td>{m.I_EE ?? '—'}</td>
-                                                                <td>{m.I_M ?? '—'}</td>
+                                                                <td>{formatIM(m.I_M) ?? '—'}</td>
                                                                 <td>{m.numero_operaciones}</td>
                                                             </tr>
                                                         ))
